@@ -1,0 +1,213 @@
+#!/bin/bash
+#
+# screencast
+# 1. use scrot to take slices of images of a window
+# 2. convert the images into a single gif
+#
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Wed Jan 21 12:40:09 2015
+# Last Modified: Wed Jan 21 16:26:20 2015
+# =================================================
+
+whole_screen=""
+frame_rate=""
+quality=""
+output_directory=""
+file_prefix=""
+filetype=""
+var4=""
+
+FILENAME_LEN=14
+SCRIPT_NAME=$(basename $0)
+msg () { 
+	echo "$SCRIPT_NAME: $@" 1>&2 
+}
+warn () {
+	msg WARNING: $@
+}
+error () {
+	msg ERROR: $@
+}
+
+take_shot() {
+	msg "writing $fout"
+	scrot "$whole_screen" -q "$quality" $fout
+	# import -window root -density 80x80 $fout
+	return $?
+}
+
+make_gif() {
+	input_files=$(find $output_directory -iname "$file_prefix*$filetype" | sort -u)
+
+	for f in $input_files; do
+		msg "resizing $f"
+		convert $f -resize '75%' $f
+	done
+
+	if [ -n "$input_files" ]; then
+		# convert the delay in milliseconds and make gif
+		msg "Creating $output_file"
+
+		# 100 * delay is a magic number.. found it through testing
+		delay_time=$( bc -l <<< "100*$delay" )
+
+		msg "Using a time delay of $delay_time milliseconds"
+		convert \
+			-delay $delay_time \
+			-loop 0 \
+			$input_files \
+			$output_file
+	fi
+
+	return $?
+}
+
+user_interrupt() {
+	# pause to allow image writing to finish
+	sleep $delay
+
+	msg "converting files in $output_directory to $output_file"
+
+	make_gif
+	if [[ $(dirname $output_directory) == "/tmp" ]]; then
+		msg "deleting $output_directory"
+		rm -r $output_directory
+	fi
+	exit $? 
+}
+
+increment_shot_num() {
+	if [[ "$1" == 0 ]]; then
+		num=0
+	else
+		num=$(sed -r -e 's/0*([1-9]+[0-9]*)/\1/' <<< $1)
+	fi
+	((num++))
+	len=${#num}
+	while ((len < FILENAME_LEN)); do
+		num=0$num
+		len=${#num}
+	done
+	echo $num
+}
+
+optstring="wf:q:d:p:t:z"
+while getopts "$optstring" opt; do
+	case "$opt" in
+		w)
+			whole_screen="-m" # Boolean: use the whole screen or not
+			;;
+		f)
+			frame_rate="$OPTARG" #frames / second
+			;;
+		q)
+			quality="$OPTARG" # quality of images from scrot \in [0,100]
+			;;
+		d)
+			output_directory="$OPTARG"
+			;;
+		p)
+			file_prefix="$OPTARG"
+			;;
+		t)
+			filetype="$OPTARG"
+			;;
+		z)
+			var4="$OPTARG"
+			;;
+		:)
+			error "-$opt requires argument" 
+			;; 
+		?)
+			error "invalid option"
+			;; 
+	esac
+done
+shift $((OPTIND - 1))
+
+if [ $# -eq 0 ]; then
+	error "output file not specified."
+	exit 1;
+fi
+
+output_file=$(dirname $1)/$(basename $1 $(ext $1)).gif
+msg "writing to $output_file"
+
+if [ -z "$whole_screen" ]; then
+	whole_screen="--focused"
+	msg "using the currently focused window screen."
+fi
+
+if [ -z "$frame_rate" ]; then
+	frame_rate="2" 
+else
+	msg "using frame_rate=$frame_rate"
+fi
+
+if [ -z "$quality" ]; then
+	quality=40
+else
+	msg "using quality=$quality"
+fi
+
+if [ -z "$output_directory" ]; then
+	output_directory=$(mktemp -d)
+	msg "using output_directory=$output_directory"
+else
+	mkdir -p "$output_directory"
+fi
+
+if [ ! -d "$output_directory" ]; then
+	error "$output_directory" is not a valid directory.
+	exit 1
+fi
+
+if [ -z "$file_prefix" ]; then
+	file_prefix=shot
+fi
+
+if [ -z "$filetype" ]; then
+	filetype=jpg
+else
+	# strip off leading period
+	if [[ "${filetype:0:1}" == "." ]]; then
+		filetype=${filetype:1:100}
+	fi
+fi
+
+# if [ -z "$var4" ]; then
+# else
+# fi
+
+# catch SIGINT to sotp program
+trap user_interrupt SIGINT
+
+delay=$(bc -l <<< "1/$frame_rate") # seconds/frame
+shot_num=$(increment_shot_num 0)
+
+t0=3
+t=0
+
+while ((t < t0)); do
+	msg "starting in $((t0 - t)) seconds.."
+	((t++))
+	sleep 1
+done
+
+while true ; do
+	fout="$output_directory"/"$file_prefix"_"$shot_num"."$filetype"
+	(take_shot) &
+
+	if [ $? -ne 0 ]; then
+		error unexpected scrot failure
+		exit 1
+	fi
+
+	msg $shot_num $fout
+	shot_num=$(increment_shot_num $shot_num) 
+	sleep $delay
+done
+
+exit 0
