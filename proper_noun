@@ -1,0 +1,51 @@
+#!/bin/bash
+# needs to be debugged. Something's wrong.
+
+to_lower() 
+{
+	echo $1 | tr 'A-Z' 'a-z' 
+}
+
+make_script()
+{
+	for c in {a..z}
+	do
+		C=$(echo $c | tr 'a-z' 'A-Z')
+		echo "s/\<$c([[:alpha:]\-_]*)\>/$C\1/g" 
+	done
+}
+
+first_let_upper() 
+{
+	echo $1 | sed -r -f $tmpscript
+}
+
+tmpscript=$(mktemp)
+make_script > $tmpscript 
+
+if (($# == 0))
+then
+
+	IFS=$'\n'
+	while read line
+	do
+		first_let_upper $(to_lower $line)
+	done < "${1:-/proc/${$}/fd/0}"
+
+else
+	while (($# > 0)) 
+	do
+		IFS=$'\n'
+		if [ -f "$1" ]
+		then
+			while read line
+			do
+				first_let_upper $(to_lower $line)
+			done < "${1:-/proc/${$}/fd/0}"
+		fi
+
+		shift
+	done 
+fi
+
+rm $tmpscript

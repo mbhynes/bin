@@ -1,0 +1,152 @@
+#!/usr/bin/octave -qf
+# For m = matrix(n,m) remove m(1,k) for all -c [k1,k2,...]
+#
+#=====================================
+# ex: set filetype=octave:
+#=====================================
+
+#==================================================
+# SET OPTIONAL COMMAND-LINE ARGUMENTS
+#==================================================
+global var_names = {"cols" "output_format"}; 
+global var_flags = {"c" "f"};
+global var_defaults = {"[]" "'%8.8f\t'"};
+global flag_expects_arg = {"c" "f"}; 
+
+#==================================================
+# PARSE COMMAND-LINE ARGUMENTS
+#==================================================
+function key = cellid(list,value)
+	key = find(strcmp(list,value));
+end
+
+function cmd = set_input_vars(flags,args)
+
+	global var_defaults;
+	global var_names; 
+	global var_flags;
+
+	len = length(var_names);
+	cmd = cell(1,len);
+
+	# loop over all var_names and set defaults
+	for k = 1 : len 
+
+		# get index of var_flag in the flags read
+		var_flags{k};
+		j = cellid(flags, var_flags{k});
+
+		# if found, use index j
+		if !isempty(j) 
+			expr = args{j};
+		else
+			expr = var_defaults{k};
+		end
+
+		cmd{k} = [var_names{k} "=" expr ";"];
+	end
+end
+
+#==================================================
+function bool = flag_has_arg(str)
+	global flag_expects_arg;
+	bool = ismember(str, flag_expects_arg);
+end
+
+#==================================================
+function f = get_flag(str)
+	f = str(str != '-');
+end
+
+#==================================================
+function bool = is_flag(str)
+	bool = (str(1) == '-');
+end
+
+#==================================================
+function [flags args files] = parse_opts(list)
+	len = length(list);
+	k = 1;
+	n_arg = 1;
+	n_file = 1;
+
+	[flags,args,files] = deal({});
+
+	while (k <= len)
+		param = list{k};
+
+		if is_flag(param)
+
+			flags{n_arg} = get_flag(param); 
+
+			if flag_has_arg(flags{n_arg}) && (k+1 <= len)
+				args{n_arg} = list{k+1};
+				k += 2;
+			else
+				args{n_arg} = "1";
+				k++;
+			end
+
+			n_arg++;
+
+		else
+			files{n_file} = list{k};
+			n_file++;
+			k++;
+		end
+
+	end
+end
+#==================================================
+# SET DEFAULTS
+#==================================================
+[flags args files] = parse_opts(argv());
+cmd = set_input_vars(flags,args);
+for k = 1 : length(cmd)
+	eval(cmd{k});
+end
+
+#==================================================
+# START PROGRAM
+#==================================================
+
+function out = read_stdin()
+	firstline = fgets(stdin);
+	[vals,ncols,err] = sscanf(firstline,"%f");
+	fprintf(stderr,"Read: vals=%f, ncols=%d, err=%s",vals,ncols,err);
+	[mat,num_els,err] = fscanf(stdin,"%d",[ncols,Inf]);
+	out = [vals mat]';
+end
+
+dummy_file = ".read.stdin";
+
+if (length(files) == 0)
+	files={".read.stdin"};
+end
+
+for k = 1 : length(files)
+	fin = files{k};
+	if strcmp(fin,dummy_file)
+		out = read_stdin();
+	else
+		out = load(fin);
+	end
+	[n,m] = size(out);
+
+	# check if cols is contained in [1:m]
+	ncols = numel(cols);
+	colspan = [1:m];
+	if !ncols || !(numel(intersect(cols,colspan)) == ncols)
+		cols = colspan;
+		ncols = numel(cols);
+	end
+
+	for j = cols
+		out(:,j) = out(:,j) - out(1,j);
+	end
+
+	% print to stdout
+	output_str = [repmat(output_format,1,length(out(1,:)))];
+	fprintf(1, [output_str(1:end-1) "\n"],out');
+
+end

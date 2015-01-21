@@ -1,0 +1,35 @@
+#===================================================
+# ext.sh [file.ext]
+# prints the file extension, .ext
+#
+# Creation Date: Tue 15 Oct 2013 05:12:54 PM EDT
+# Last Modified: Sun 08 Dec 2013 03:45:06 PM EST
+#===================================================
+
+#!/bin/bash
+
+# print file extensions
+if (( $# == 0 ))
+then
+	echo "usage: ext.sh <f1.ext1> ... <fn.extn>"
+	echo ">>.ext1 .ext2 .ext3"
+	exit 1
+fi
+while (( $# > 0))
+do
+	s=$1
+	n=${#s}
+	i=-1
+	while [ "${s: $i:1}" != '.' ] && ((n+i >= 0))
+	do
+		((i--))
+	done
+	if ((n+i >= 0))
+	then
+		echo ${s: $i}
+	else
+		echo
+	fi
+	shift
+done
+exit 0

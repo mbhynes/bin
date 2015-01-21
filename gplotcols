@@ -1,0 +1,292 @@
+#!/bin/bash
+# plot single files' columns on single plot
+
+if (($# == 0))
+then
+	echo usage: $0 -o fout "[opts]" fin
+	echo Plots files using gnuplot, writes to fout
+	echo
+	echo Options:
+	echo "-e == errorbar flag (file data must follow gnuplot format)"
+	echo "-x <string> == xlabel string"
+	echo "-y <string> == ylabel string"
+	echo "-L <str1, str2, ...> == legend string for key"
+	echo "-P <header> == position parameters for key, e.g. center"
+	echo "-h <header> == gnuplot header"
+	exit
+fi
+
+
+# add character escapes to certain strings
+escape_tex_chars() {
+	echo "$@"
+	# echo "$@" | sed -r -e 's/\\/\\\\/g; s/\$/\\$/g;'
+	# echo "$@" | sed -r -e 's/\\/\\\\/g; s/\$/\\$/g;'
+}
+
+generate_header() {
+	cat <<EOF 
+#
+# $(date)
+#
+
+set terminal $terminal size $size color colortext font '$font' linewidth $linewidth
+set samples 500, 500
+set border linewidth $linewidth
+set style fill solid 2.70 noborder
+set style data lines
+
+# Line styles 
+set style line 1 lt rgb "#A00000" lw $linewidth pt 13 ps 1.5
+set style line 2 lt rgb "#00A000" lw $linewidth pt 3 ps 1.2
+set style line 3 lc rgb '#0060ad' lt 1 lw $linewidth pt 9 ps 1.5 
+set style line 4 lt rgb "#ad0060" lw $linewidth pt 5 ps 1.2
+set style line 5 lt rgb "#F25900" lw $linewidth pt 7 ps 1.5
+set style line 6 lc rgb '#aa0b1d' lt 1 lw $linewidth pt 14 ps 1.5 
+set style line 7 lc rgb '#60ad00' lt 1 lw $linewidth pt 1 ps 1.5 
+
+# Line style for axes
+set style line 80 lt 1 lc rgb "#000000" lw $linewidth
+
+# Line style for grid
+set style line 81 lt 1 lc rgb "#808080" lw $linewidth 
+set grid back linestyle 81
+
+# Remove border on top and right.  
+set border 3 back linestyle 80 
+    
+set xtics nomirror
+set ytics nomirror
+set xtics norangelimit
+set format '%g'
+
+# logscale options
+#set log x
+#set mxtics 10    
+
+EOF
+}
+
+
+DEFAULT_TERM="postscript eps enhanced"
+
+if which gplot_vars 1>&2 2>/dev/null
+then
+	. gplot_vars
+fi
+
+
+OPTSTRING=ex:y:L:h:o:P:T:f:s:w:
+while getopts $OPTSTRING opt
+do
+	case $opt in
+		s)
+			size="$OPTARG"
+			;;
+		T)
+			terminal="$OPTARG"
+			;;
+		w) 
+			linewidth="$OPTARG"
+			;;
+		f)
+			font="$OPTARG"
+			;;
+		o)
+			fout="$OPTARG"
+			;;
+		e)
+			errorbars="true"
+			;;
+		x)
+			xtit="$OPTARG"
+			;;
+		y)
+			ytit="$OPTARG"
+			;;
+		L) # read legend strings into array
+			read -a legend <<< "$OPTARG"
+			;;
+		P)
+			leg_pos="$OPTARG"
+			;;
+		h)
+			header="$OPTARG"
+			;;
+		:)
+			echo "-$opt requires argument"
+			exit 1
+			;;
+		\?) 
+			echo "invalid option -$opt"
+			;;
+	esac
+done
+
+if [ -z "$fout" ]
+then
+	echo "fout must be specified"
+	exit 1
+fi
+
+shift $((OPTIND - 1))
+
+file="$1"
+nfiles=$#
+if ((nfiles != 1))
+then
+	echo "Can only support a single file; see gplot."
+	exit
+fi
+
+# check if variables are set; else set defaults
+if [ -z "$linewidth" ]
+then
+	linewidth=3
+fi
+
+if [ -z "$size" ]
+then
+	size="6,4"
+fi
+
+if [ -z "$terminal" ] && [ -z "$header"]
+then
+	terminal=$DEFAULT_TERM
+fi
+
+if [ -z "$font" ]
+then
+	font="Courier,20,Bold" 
+fi
+
+# generate script to pass to gnuplot
+plot_script=$(mktemp)
+
+# write header to script
+if [ -r "$header" ]
+then
+	cat $header > $plot_script
+else
+
+	# change output filetype to default .tex
+	# if [[ "$terminal" == "$DEFAULT_TERM" ]]
+	# then
+	# 	fout_ext=$(ext $fout)
+	# 	fout_prefix=$(basename $fout $fout_ext)
+	# 	fout=$fout_prefix.tex
+	# fi
+
+	generate_header > $plot_script
+fi
+
+# set the x,y labels, if they exist
+if [ "$xtit" ]
+then
+	echo "set xlabel '$(escape_tex_chars $xtit)'" >> $plot_script
+fi
+if [ "$ytit" ]
+then
+	echo "set ylabel '$(escape_tex_chars $ytit)'" >> $plot_script
+fi
+
+# set the legend, if it exists
+# leg_pos allows position info to be entered; it may be empty
+if [ "$legend" ]
+then
+	echo "set key $leg_pos reverse enhanced autotitle nobox" >> $plot_script
+else
+	echo "set key off" >> $plot_script
+fi
+
+# set output file
+echo "set output '$fout'" >> $plot_script
+
+# =============================================
+# plot files
+# =============================================
+
+ncols=$(head -n 1 $file | wc -w)
+
+if [ "$errorbars" ]
+then
+	klast=$((ncols-1))
+	kvals=$(seq 2 2 $klast)
+else
+	klast=$((ncols))
+	kvals=$(seq 2 $klast)
+fi
+
+leg_k=0
+for k in $kvals
+do
+	if [ -z "${legend[k]}" ]
+	then
+		leg_entry=""
+	else
+		leg_entry="$( escape_tex_chars ${legend[$leg_k]} )"
+		((leg_k++))
+	fi
+	echo Adding "$leg_entry" to plot
+
+# =============================================
+# plotting is divided into sections: 
+# 	multiple plots require linebreaks + commas
+
+	num=$k
+	line="ls $num"
+
+# =============================================
+# first plot command; use filename, follow with comma and linebreak
+	if ((k == 2)) 
+	then
+		if [ "$errorbars" ] && ((ncols > 2))
+		then
+			echo "plot '$file' using 1:$k:$((k+1)) title '$leg_entry' with errorbars $line, \\" >> $plot_script
+			echo "	'' using 1:$k notitle with lines ls $num, \\" >> $plot_script
+		else
+			echo "plot '$file' using 1:$k title '$leg_entry' $line, \\" >> $plot_script
+		fi
+
+# =============================================
+# last plot command:
+# 	no filename, no linebreak
+	elif ((k == klast)) 
+	then
+		if [ "$errorbars" ] && ((ncols > 2))
+		then
+			echo "	'' using 1:$k:$((k+1)) title '$leg_entry' with errorbars $line, \\" >> $plot_script
+			echo "	'' using 1:$k notitle with lines ls $num" >> $plot_script
+		else
+			echo "	'' using 1:$k title '$leg_entry' $line" >> $plot_script
+		fi
+
+# =============================================
+# middle plot commands
+# 	no filename, comma + linebreak
+	else
+		if [ "$errorbars" ] && ((ncols > 2))
+		then
+			echo "	'' using 1:$k:$((k+1)) title '$leg_entry' with errorbars $line, \\" >> $plot_script
+			echo "	'' using 1:$k notitle with lines ls $num, \\" >> $plot_script
+		else
+			echo "	'' using 1:$k title '$leg_entry' $line, \\" >> $plot_script
+		fi
+	fi
+
+	((k++))
+done
+
+cat $plot_script
+gnuplot $plot_script
+rm $plot_script
+
+# convert default output to eps 
+# if [[ "$terminal" == "$DEFAULT_TERM" ]]
+# then
+# 	latex $fout 1>&2 2>/dev/null
+# 	dvips -o $fout_prefix.eps $fout_prefix.dvi 1>&2 2>/dev/null
+# 	rm $fout_prefix.dvi
+# fi
+
+exit
