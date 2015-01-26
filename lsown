@@ -12,18 +12,9 @@ ls_user_files() # -dir
 	IFS=$'\n'
 	delim=' '
 	for file in $(ls $1/); do
-		# echo "$file"
-		# if echo $(ls -oad "$1/$file") | grep -q "$USER" ; then
-		# ls -oad "$1/$file"| cut -d " " -f3
 		if grep -q "$USER" <(ls -oad "$1/$file" | cut -d " " -f3); then
 			echo "$1/$file"
 		fi
-		# echo "$line"
-		# echo "$(echo "$line" | tr -s ' ' "$delim" \
-		# 	| cut --complement -d "$delim" -f1,2 \
-		# 	| grep "$USER"  \
-		# 	| cut -d "$delim" --complement -f1-5 \
-		# )"
 	done
 }
 
