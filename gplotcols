@@ -1,8 +1,7 @@
 #!/bin/bash
 # plot single files' columns on single plot
 
-if (($# == 0))
-then
+if (($# == 0)); then
 	echo usage: $0 -o fout "[opts]" fin
 	echo Plots files using gnuplot, writes to fout
 	echo
@@ -70,8 +69,7 @@ EOF
 
 DEFAULT_TERM="postscript eps enhanced"
 
-if which gplot_vars 1>&2 2>/dev/null
-then
+if which gplot_vars 1>&2 2>/dev/null; then
 	. gplot_vars
 fi
 
@@ -123,9 +121,8 @@ do
 	esac
 done
 
-if [ -z "$fout" ]
-then
-	echo "fout must be specified"
+if [ -z "$fout" ]; then
+	disp_opts -h -n 10 $0 2>/dev/null
 	exit 1
 fi
 
@@ -133,30 +130,25 @@ shift $((OPTIND - 1))
 
 file="$1"
 nfiles=$#
-if ((nfiles != 1))
-then
+if ((nfiles != 1)); then
 	echo "Can only support a single file; see gplot."
 	exit
 fi
 
 # check if variables are set; else set defaults
-if [ -z "$linewidth" ]
-then
+if [ -z "$linewidth" ]; then
 	linewidth=3
 fi
 
-if [ -z "$size" ]
-then
+if [ -z "$size" ]; then
 	size="6,4"
 fi
 
-if [ -z "$terminal" ] && [ -z "$header"]
-then
+if [ -z "$terminal" ] && [ -z "$header"]; then
 	terminal=$DEFAULT_TERM
 fi
 
-if [ -z "$font" ]
-then
+if [ -z "$font" ]; then
 	font="Courier,20,Bold" 
 fi
 
@@ -164,8 +156,7 @@ fi
 plot_script=$(mktemp)
 
 # write header to script
-if [ -r "$header" ]
-then
+if [ -r "$header" ]; then
 	cat $header > $plot_script
 else
 
@@ -181,19 +172,16 @@ else
 fi
 
 # set the x,y labels, if they exist
-if [ "$xtit" ]
-then
+if [ "$xtit" ]; then
 	echo "set xlabel '$(escape_tex_chars $xtit)'" >> $plot_script
 fi
-if [ "$ytit" ]
-then
+if [ "$ytit" ]; then
 	echo "set ylabel '$(escape_tex_chars $ytit)'" >> $plot_script
 fi
 
 # set the legend, if it exists
 # leg_pos allows position info to be entered; it may be empty
-if [ "$legend" ]
-then
+if [ "$legend" ]; then
 	echo "set key $leg_pos reverse enhanced autotitle nobox" >> $plot_script
 else
 	echo "set key off" >> $plot_script
@@ -208,8 +196,7 @@ echo "set output '$fout'" >> $plot_script
 
 ncols=$(head -n 1 $file | wc -w)
 
-if [ "$errorbars" ]
-then
+if [ "$errorbars" ]; then
 	klast=$((ncols-1))
 	kvals=$(seq 2 2 $klast)
 else
@@ -220,8 +207,7 @@ fi
 leg_k=0
 for k in $kvals
 do
-	if [ -z "${legend[k]}" ]
-	then
+	if [ -z "${legend[k]}" ];	then
 		leg_entry=""
 	else
 		leg_entry="$( escape_tex_chars ${legend[$leg_k]} )"
@@ -238,10 +224,8 @@ do
 
 # =============================================
 # first plot command; use filename, follow with comma and linebreak
-	if ((k == 2)) 
-	then
-		if [ "$errorbars" ] && ((ncols > 2))
-		then
+	if ((k == 2)) ;	then
+		if [ "$errorbars" ] && ((ncols > 2));	then
 			echo "plot '$file' using 1:$k:$((k+1)) title '$leg_entry' with errorbars $line, \\" >> $plot_script
 			echo "	'' using 1:$k notitle with lines ls $num, \\" >> $plot_script
 		else
@@ -251,10 +235,8 @@ do
 # =============================================
 # last plot command:
 # 	no filename, no linebreak
-	elif ((k == klast)) 
-	then
-		if [ "$errorbars" ] && ((ncols > 2))
-		then
+	elif ((k == klast)) ;	then
+		if [ "$errorbars" ] && ((ncols > 2));	then
 			echo "	'' using 1:$k:$((k+1)) title '$leg_entry' with errorbars $line, \\" >> $plot_script
 			echo "	'' using 1:$k notitle with lines ls $num" >> $plot_script
 		else
@@ -265,8 +247,7 @@ do
 # middle plot commands
 # 	no filename, comma + linebreak
 	else
-		if [ "$errorbars" ] && ((ncols > 2))
-		then
+		if [ "$errorbars" ] && ((ncols > 2));	then
 			echo "	'' using 1:$k:$((k+1)) title '$leg_entry' with errorbars $line, \\" >> $plot_script
 			echo "	'' using 1:$k notitle with lines ls $num, \\" >> $plot_script
 		else

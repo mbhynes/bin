@@ -1,20 +1,19 @@
 #!/bin/bash
 # plot multiple files on single plot
 
-if (($# == 0))
-then
-	echo usage: $0 -o fout "[opts]" fin1 fin2 ...
-	echo Plots files using gnuplot, writes to fout
-	echo
-	echo Options:
-	echo "-e == errorbar flag (file data must follow gnuplot format)"
-	echo "-x <string> == xlabel string"
-	echo "-y <string> == ylabel string"
-	echo "-L <str1, str2, ...> == legend string for key"
-	echo "-P <header> == position parameters for key, e.g. center"
-	echo "-h <header> == gnuplot header"
-	exit
-fi
+# if (($# == 0)); then
+# 	echo usage: $0 -o fout "[opts]" fin1 fin2 ...
+# 	echo Plots files using gnuplot, writes to fout
+# 	echo
+# 	echo Options:
+# 	echo "-e == errorbar flag (file data must follow gnuplot format)"
+# 	echo "-x <string> == xlabel string"
+# 	echo "-y <string> == ylabel string"
+# 	echo "-L <str1, str2, ...> == legend string for key"
+# 	echo "-P <header> == position parameters for key, e.g. center"
+# 	echo "-h <header> == gnuplot header"
+# 	exit
+# fi
 
 
 # add character escapes to certain strings
@@ -74,18 +73,10 @@ set format '%g'
 EOF
 }
 
-
 DEFAULT_TERM="postscript eps enhanced"
 
-# if which gplot_vars 1>&2 2>/dev/null
-# then
-# 	. gplot_vars
-# fi
-
-
 OPTSTRING=ex:y:L:h:o:P:T:f:s:w:FX:Y:
-while getopts $OPTSTRING opt
-do
+while getopts $OPTSTRING opt; do
 	case $opt in
 		X)
 			xrange="$OPTARG"
@@ -139,59 +130,49 @@ do
 	esac
 done
 
-if [ -z "$fout" ]
-then
-	echo "fout must be specified"
+if [ -z "$fout" ]; then
+	disp_opts -h -n 10 $0 2>/dev/null
 	exit 1
 fi
 
 shift $((OPTIND - 1))
 
 nfiles=$#
-if ((nfiles == 0))
-then
+if ((nfiles == 0)); then
 	exit
 fi
 
 # check if variables are set; else set defaults
-if [ -z "$linewidth" ]
-then
-	linewidth=3
+if [ -z "$linewidth" ]; then
+	linewidth=2
 fi
 
-if [ -z "$size" ]
-then
+if [ -z "$size" ]; then
 	size="6,3"
 fi
 
-if [ -z "$terminal" ] && [ -z "$header"]
-then
+if [ -z "$terminal" ] && [ -z "$header"]; then
 	terminal=$DEFAULT_TERM
 fi
 
-if [ -z "$font" ]
-then
+if [ -z "$font" ]; then
 	font="Courier,20,Bold" 
 fi
 
-if [ -z "$xrange" ]
-then
+if [ -z "$xrange" ]; then
 	xrange="autoscale x"
 else
-	if [[ "${xrange:0:1}" != '[' ]]
-	then
+	if [[ "${xrange:0:1}" != '[' ]]; then
 		xrange="xrange [$xrange]"
 	else
 		xrange="xrange $xrange"
 	fi
 fi
 
-if [ -z "$yrange" ]
-then
+if [ -z "$yrange" ]; then
 	yrange="autoscale y"
 else
-	if [[ "${yrange:0:1}" != '[' ]]
-	then
+	if [[ "${yrange:0:1}" != '[' ]]; then
 		yrange="yrange [$yrange]"
 	else
 		yrange="yrange $yrange"
@@ -202,8 +183,7 @@ fi
 plot_script=$(mktemp)
 
 # write header to script
-if [ -r "$header" ]
-then
+if [ -r "$header" ]; then
 	cat $header > $plot_script
 else
 
@@ -219,19 +199,16 @@ else
 fi
 
 # set the x,y labels, if they exist
-if [ "$xtit" ]
-then
+if [ "$xtit" ]; then
 	echo "set xlabel '$(escape_tex_chars $xtit)'" >> $plot_script
 fi
-if [ "$ytit" ]
-then
+if [ "$ytit" ]; then
 	echo "set ylabel '$(escape_tex_chars $ytit)'" >> $plot_script
 fi
 
 # set the legend, if it exists
 # leg_pos allows position info to be entered; it may be empty
-if [ "$legend" ]
-then
+if [ "$legend" ]; then
 	echo "set key $leg_pos reverse enhanced autotitle nobox" >> $plot_script
 else
 	echo "set key off" >> $plot_script
@@ -244,18 +221,15 @@ echo "set output '$fout'" >> $plot_script
 # plot files
 # =============================================
 k=0
-for file in "$@"
-do
+for file in "$@"; do
 	ncols=$(head -n 1 $file | wc -w)
 
-	if ((ncols == 1))
-	then
+	if ((ncols == 1)); then
 		echo "WARNING: $file contains only $ncols columns---skipping" 1>&2
 		continue
 	fi
 
-	if [ -z "${legend[k]}" ]
-	then
+	if [ -z "${legend[k]}" ]; then
 		leg_entry=""
 	else
 		leg_entry="$( escape_tex_chars ${legend[k]} )"
@@ -271,12 +245,9 @@ do
 
 # =============================================
 # check if only 1 file is given:
-	if (($# == 1)) 
-	then
-		if [ "$errorbars" ] && ((ncols > 2))
-		then
-			if [ "$filled" ]
-			then
+	if (($# == 1)) ; then
+		if [ "$errorbars" ] && ((ncols > 2));	then
+			if [ "$filled" ];	then
 				echo "plot '$file' using 1:(\$2-\$3):(\$2+\$3) title '$leg_entry' with filledcurves \\" >> $plot_script
 			else
 				echo "plot '$file' title '$leg_entry' with errorbars $line, \\" >> $plot_script
@@ -290,12 +261,9 @@ do
 
 # =============================================
 # first plot command; use filename, follow with comma and linebreak
-	if ((k == 0)) 
-	then
-		if [ "$errorbars" ] && ((ncols > 2))
-		then
-			if [ "$filled" ]
-			then
+	if ((k == 0)) ;	then
+		if [ "$errorbars" ] && ((ncols > 2));	then
+			if [ "$filled" ];	then
 				echo "plot '$file' using 1:(\$2-\$3):(\$2+\$3) title '$leg_entry' with filledcurves, \\" >> $plot_script
 			else
 				echo "plot '$file' title '$leg_entry' with errorbars $line, \\" >> $plot_script
@@ -308,12 +276,9 @@ do
 # =============================================
 # last plot command:
 # 	no filename, no linebreak
-	elif ((k+1 == nfiles)) 
-	then
-		if [ "$errorbars" ] && ((ncols > 2))
-		then
-			if [ "$filled" ]
-			then
+	elif ((k+1 == nfiles)) ;	then
+		if [ "$errorbars" ] && ((ncols > 2));	then
+			if [ "$filled" ];	then
 				echo "	'$file' using 1:(\$2-\$3):(\$2+\$3) title '$leg_entry' with filledcurves" >> $plot_script
 			else
 				echo "	'$file' title '$leg_entry' with errorbars $line, \\" >> $plot_script
@@ -327,10 +292,8 @@ do
 # middle plot commands
 # 	no filename, comma + linebreak
 	else
-		if [ "$errorbars" ] && ((ncols > 2))
-		then
-			if [ "$filled" ]
-			then
+		if [ "$errorbars" ] && ((ncols > 2));	then
+			if [ "$filled" ];	then
 				echo "	'$file' using 1:(\$2-\$3):(\$2+\$3) title '$leg_entry' with filledcurves, \\" >> $plot_script
 			else
 				echo "	'$file' title '$leg_entry' with errorbars $line, \\" >> $plot_script
