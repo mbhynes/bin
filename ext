@@ -1,9 +1,20 @@
-#===================================================
-# ext.sh [file.ext]
-# prints the file extension, .ext
+#!/bin/bash
+#
+# ext [file1 file2 ...]
+#
+# Print the file extension of input files.
+#
+# The extension is taken as the suffix of the rightmost
+# substring beginning with a period, '.'
+#
+# >> ext test.png test.png.old .rc test
+# .png
+# .old
+# .rc
+# <nullstring>
 #
 # Creation Date: Tue 15 Oct 2013 05:12:54 PM EDT
-# Last Modified: Sun 08 Dec 2013 03:45:06 PM EST
+# Last Modified: Sun 25 Jan 2015 08:45:03 PM EST
 #===================================================
 
 #!/bin/bash
@@ -11,8 +22,9 @@
 # print file extensions
 if (( $# == 0 ))
 then
-	echo "usage: ext.sh <f1.ext1> ... <fn.extn>"
-	echo ">>.ext1 .ext2 .ext3"
+	disp_opts -h -n 20 $0 2>/dev/null
+	# echo "usage: ext.sh <f1.ext1> ... <fn.extn>"
+	# echo ">>.ext1 .ext2 .ext3"
 	exit 1
 fi
 while (( $# > 0))

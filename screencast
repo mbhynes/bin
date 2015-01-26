@@ -8,7 +8,7 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Wed Jan 21 12:40:09 2015
-# Last Modified: Wed Jan 21 16:26:20 2015
+# Last Modified: Thu 22 Jan 2015 06:17:33 PM EST
 # =================================================
 
 whole_screen=""
@@ -17,7 +17,7 @@ quality=""
 output_directory=""
 file_prefix=""
 filetype=""
-var4=""
+resize_percentage=""
 
 FILENAME_LEN=14
 SCRIPT_NAME=$(basename $0)
@@ -41,10 +41,19 @@ take_shot() {
 make_gif() {
 	input_files=$(find $output_directory -iname "$file_prefix*$filetype" | sort -u)
 
-	for f in $input_files; do
-		msg "resizing $f"
-		convert $f -resize '75%' $f
-	done
+	percent=$(tr -d '%' <<< $resize_percentage)
+
+	if ((percent < 100)); then
+
+		# if [[ "${resize_percentage: -1:1}" != "%" ]]; then
+		# 	resize_percentage="$resize_percentage%"
+		# fi
+
+		for f in $input_files; do
+			msg "resizing $f to $percent%"
+			convert $f -resize "$percent%" $f
+		done
+	fi
 
 	if [ -n "$input_files" ]; then
 		# convert the delay in milliseconds and make gif
@@ -93,7 +102,7 @@ increment_shot_num() {
 	echo $num
 }
 
-optstring="wf:q:d:p:t:z"
+optstring="wf:q:d:p:t:r:"
 while getopts "$optstring" opt; do
 	case "$opt" in
 		w)
@@ -114,8 +123,8 @@ while getopts "$optstring" opt; do
 		t)
 			filetype="$OPTARG"
 			;;
-		z)
-			var4="$OPTARG"
+		r)
+			resize_percentage="$OPTARG"
 			;;
 		:)
 			error "-$opt requires argument" 
@@ -177,9 +186,9 @@ else
 	fi
 fi
 
-# if [ -z "$var4" ]; then
-# else
-# fi
+if [ -z "$resize_percentage" ]; then
+	resize_percentage="100"
+fi
 
 # catch SIGINT to sotp program
 trap user_interrupt SIGINT

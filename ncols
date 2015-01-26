@@ -1,0 +1,68 @@
+#!/bin/bash
+#
+# ncols 
+#
+# Count the number of columns in given files
+# Delimiter may be specified with -d switch; default is: ','
+#
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Thu 22 Jan 2015 06:25:58 PM EST
+# Last Modified: Sun 25 Jan 2015 08:40:05 PM EST
+# =================================================
+
+delim=""
+
+count_cols(){ # filename
+	head -n 1 "$1" \
+		| tr "$delim" "\n" \
+		| wc -l
+}
+
+SCRIPT_NAME=$(basename $0)
+msg () {
+	echo "$SCRIPT_NAME: $@" 1>&2
+}
+warn () {
+	msg WARNING: $@
+}
+error () {
+	msg ERROR: $@
+}
+
+
+optstring="d:"
+while getopts "$optstring" opt; do
+	case "$opt" in
+		d)
+			delim="$OPTARG"
+			;;
+		:)
+			error "-$opt requires argument" 
+			;; 
+		?)
+			error $(basename $0)"invalid option"
+			;; 
+	esac
+done
+shift $((OPTIND - 1))
+
+if [ $# -eq 0 ]; then
+	disp_opts -h -n 15 $0 2>/dev/null
+	exit 1
+fi
+
+if [ -z "$delim" ]; then
+	delim=","
+fi
+
+for file in "$@"; do
+	if [ -r "$file" ]; then
+		count_cols "$file"
+	else
+		error "$file is not a readable file"
+	fi
+done
+
+exit

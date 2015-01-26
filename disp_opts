@@ -1,0 +1,154 @@
+#!/bin/bash
+#
+# disp_opts
+#
+# Display the getopts options in a bash script
+#
+# This script uses grep to extract the following patterns:
+# 1. while getopts "$var" str; do
+# 2. 		:)
+#
+# Patterns 1 and 2 mark the beginning and end of the geopts block.
+# Options are extracted assuming they follow the pattern:
+#		v)
+#				expr
+#				;;
+#
+# If exp is: 
+#		somevar="$OPTARG"
+# then disp_opts displays:
+# 	-v	<somevar> 
+# since -v is a flag requiring an argument
+#
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Sun Jan 25 16:05:24 2015
+# Last Modified: Sun Jan 25 18:41:26 2015
+# =================================================
+
+NUM_HEADER_LINES=20
+display_header=""
+display_=""
+var1=""
+var2=""
+
+SCRIPT_NAME=$(basename $0)
+msg () {
+	echo "$SCRIPT_NAME: $@" 1>&2
+}
+warn () {
+	msg WARNING: $@
+}
+error () {
+	msg ERROR: $@
+}
+
+get_line_first_match() {
+	pattern="$1"
+	file="$2"
+	msg $pattern in $file
+
+	grep -En -m 1 -- "$pattern" "$file" 1>&2
+	grep -En -m 1 -- "$pattern" "$file" \
+		| cut -d ":" -f 1
+}
+
+# print the getopts portion of the given file
+cat_getopts_block() { 
+	file="$1"
+	line1=$(get_line_first_match "^[[:space:]]*while getopts.*; do[[:space:]]*$" "$file")
+	line2=$(get_line_first_match "^[[:space:]]*:)[[:space:]]*$" "$file")
+	msg $line1,$line2
+
+	if [ -z "$line1" -o -z "$line2" ]; then
+		error "no getopts block found in $file:"
+		error "line1 was: $line1"
+		error "line2 was: $line2"
+		echo ""
+		return 1
+	fi
+	catsub -1 "$line1" -2 "$line2" "$file"
+}
+
+print_each_opt() {
+	grep -E -A1 -- "^[[:space:]]*[^:?])[[:space:]]*" \
+		| sed -r -f <( cat <<EOF
+			s/^[[:space:]]*([[:alnum:]]+)\).*/-@\1/
+			/^--$/d
+			s/[[:space:]]([[:alnum:]_]+)=".OPTARG"/<\1>/
+			# s/^[[:space:]]*([[:alnum:]_]+)=\"*\$OPTARG\"*[[:space:]]*/\1/
+EOF) \
+		| tr '\n' ' ' \
+		| tr '-' '\n' \
+		| tr '@' '-'
+	echo ""
+}
+
+# print each opt flag as a switch with info about it
+print_opts() {
+	if ! grep -Eqi -- "^[[:space:]]*while getopts" "$1"; then
+		return 1
+	fi
+
+	echo "Options:"
+	cat_getopts_block "$1" \
+		| print_each_opt \
+		| tr -s ' \t\n' '\t\t\n'
+
+	return 0
+}
+
+print_header() {
+	if [ -z "$num_header_lines" ]; then
+		num_header_lines=$NUM_HEADER_LINES
+	fi
+
+	head -n "$num_header_lines" "$file" \
+		| sed -r -f <( cat <<EOF 
+			/^#!\/bin\/.*/d
+			/^[^#]/d
+			s/^#(.*)/\1/
+			/^[[:space:]]*[Aa]uthor.*/d
+			/^[[:space:]]*[Ll]icense*/d
+			/^[[:space:]]*[Cc]reation*/d
+			/^[[:space:]]*[Ll]ast*/d
+			# /^[[:space:]]==*/d
+			s/\t/  /g
+EOF)
+}
+
+optstring="hn:"
+while getopts "$optstring" opt; do
+	case "$opt" in
+		h)
+			display_header="true"
+			;;
+		n)
+			num_header_lines="$OPTARG"
+			;;
+		:)
+			error "-$opt requires argument" 
+			;; 
+		?)
+			error invalid option
+			;; 
+	esac
+done
+shift $((OPTIND - 1))
+
+if [ $# -eq 0 ]; then
+	disp_opts -n 30 -h $0 2>/dev/null
+	exit 1
+fi
+
+for file in "$@"; do
+	if [ ! -r "$file" ]; then
+		error "$file is not readable or does not exist"
+		continue
+	fi
+	if [ -n "$display_header" ]; then
+		print_header "$file"
+	fi
+	print_opts "$file"
+done

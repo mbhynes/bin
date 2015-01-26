@@ -1,0 +1,152 @@
+#!/bin/bash
+# makegif -o output.gif [f1 f2 ...]
+#
+# Greate gif from given image files.
+#
+# This is a wrapper to ttygif:
+# https://github.com/icholy/ttygif
+# 
+# If -t is specified, the timestamp in the filename 
+# as produced by ttygif will be used.
+#
+# Else, the files will be concatenated using a constant
+# delay time, defaulting to -delay 100 #ms 
+#
+# If -d delay is specified, then the resultant gif 
+# will be concatenated using /usr/bin/convert with the
+# -delay flag.
+#
+# =================================================
+# Author: Mike Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Fri Jan 23 02:16:10 2015
+# Last Modified: Sun Jan 25 20:00:09 2015
+# =================================================
+
+SCRIPT_NAME=$(basename $0)
+msg () { 
+	echo "$SCRIPT_NAME: $@" 1>&2 
+}
+warn () {
+	msg WARNING: $@
+}
+error () {
+	msg ERROR: $@
+}
+
+concat_timestamp_files() {
+	# avoid deleting file, if convert will fail
+	set -e
+
+	prev_delay=0
+	skipped=0
+	gifs=$(sort <<< "$@")
+
+	# remove -loop 0 if you don't want it to repeat
+	_convert="convert -loop 0 "
+
+	for gif in $gifs; do
+
+		file=${gif##*/} 
+		name=${file%.gif}
+		delay=$(echo "${name#*_} * 0.1" | bc)
+
+		msg "procesing $file with $delay ms delay"
+
+		# trim zero delay frames
+		if (bc -l <<< "$delay == 0" > /dev/null) \
+			&& (bc -l <<< "prev_delay == 0" > /dev/null); then
+
+			msg "procesing $file with $delay ms delay"
+			if ((skipped < 5)); then
+				skipped=$((skipped + 1))
+				prev_delay=$delay
+				# continue
+			else
+				skipped=0
+			fi
+		fi
+
+		prev_delay=$delay
+		_convert="$_convert -delay $delay $gif"
+	done
+
+	msg "merging files to to $output_file"
+	_convert="$_convert -layers Optimize $output_file"
+	eval "$_convert"
+}
+
+concat_files() {
+	msg "Creating $output_file"
+	msg "Using a time delay of $delay milliseconds"
+	_convert="convert -loop 0 -delay $delay" 
+	for gif in "$@"; do
+		msg "procesing $gif"
+		_convert="$_convert -delay $delay $gif"
+	done
+	msg "merging files to to $output_file"
+	_convert="$_convert -layers Optimize $output_file"
+	eval "$_convert"
+
+	return $?
+}
+
+output_file=""
+use_timestamp=""
+delay=""
+delete_input_files=""
+
+optstring="o:td:D"
+while getopts "$optstring" opt; do
+	case "$opt" in
+		D)
+			delete_input_files="true"
+			;;
+		o)
+			output_filename="$OPTARG"
+			out_dir=$(dirname $output_filename)
+			ext=$(ext $name)
+			output_file=$out_dir/$(basename $output_filename $ext).gif
+			;;
+		t)
+			use_timestamp="true"
+			;;
+		d)
+			delay="$OPTARG"
+			;;
+		:)
+			error "-$opt requires argument" 
+			;; 
+		?)
+			error invalid option
+			;; 
+	esac
+done
+shift $((OPTIND - 1))
+
+if [ $# -eq 0 ]; then
+	disp_opts -h -n 30 $0 2>/dev/null
+	# disp_opts -h -n 17 $0 
+	exit 1
+fi
+
+if [ -z "$output_file" ]; then
+	error "no output file specified"
+	exit 1
+fi
+
+if [ -n "$use_timestamp" ]; then
+	concat_timestamp_files "$@"
+else
+	if [ -z "$delay" ]; then
+		delay=100 # ms
+	fi
+	concat_files "$@"
+fi
+
+if [ -n "$delete_input_files" ]; then
+	msg "deleting input files"
+	rm -i "$@"
+fi
+
+exit

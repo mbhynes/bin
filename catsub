@@ -1,0 +1,89 @@
+#!/bin/bash
+#
+# catsub
+# print subsections of files 
+#
+# catsub -1 line_1 -2 line_2
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Sun Jan 25 16:21:55 2015
+# Last Modified: Sun 25 Jan 2015 08:41:09 PM EST
+# =================================================
+
+line1=""
+line2=""
+
+SCRIPT_NAME=$(basename $0)
+msg () {
+	echo "$SCRIPT_NAME: $@" 1>&2
+}
+warn () {
+	msg WARNING: $@
+}
+error () {
+	msg ERROR: $@
+}
+
+
+optstring="1:2:"
+while getopts "$optstring" opt; do
+	case "$opt" in
+		1)
+			line1="$OPTARG" #first line of subsection
+			;;
+		2)
+			line2="$OPTARG" #last line of subsection
+			;;
+		:)
+			error "-$opt requires argument" 
+			;; 
+		?)
+			error invalid option
+			;; 
+	esac
+done
+shift $((OPTIND - 1))
+
+if [ $# -eq 0 ]; then
+	disp_opts -n 15 -h $0 2>/dev/null
+	exit 1
+fi
+
+if [ -z "$line1" ]; then
+	line1=1
+	warn "using line1=1 for all input files"
+fi
+
+if [ -z "$line2" ]; then
+	line2=$(wc -l <$1)
+	warn "using the length of $1 as last line for all input files: $line2"
+fi
+
+
+for file in "$@"; do
+	if [ ! -r "$file" ]; then
+		error "$file is not readable or does not exist"
+		continue
+	fi
+
+	len=$(wc -l <$file)
+	delta=$((line2 - line1 + 1))
+
+	if ((line1 > line2)); then
+		warn "line1 > line2: $line1 > $line2"
+		tmp=$line2
+		line2=$line1
+		line1=$tmp
+	fi
+
+	if ((line2 > len)); then
+		warn "line2 > file_len: $line2 > $len; using line2=$len"
+		line2=$len
+	fi
+
+	head -n $line2 $file \
+		| tail -n $delta
+
+done
+
