@@ -1,5 +1,5 @@
 #!/usr/bin/octave -qf
-# generate histogram of input files
+# generate histogram of input OPTFILES
 #
 #=====================================
 # ex: set filetype=octave:
@@ -8,111 +8,16 @@
 #==================================================
 # SET OPTIONAL COMMAND-LINE ARGUMENTS
 #==================================================
-global var_names = {"bins" "cols" "flag_norm" "flag_err" "output_format"}; 
-global var_flags = {"b" "c" "N" "e" "f"};
-global var_defaults = {"100" "[]" "0" "0" "'%8.8f\t'"};
-global flag_expects_arg = {"b" "c" "f"}; 
+global OPT_VAR_NAMES = {"bins" "cols" "flag_norm" "flag_err" "output_format"}; 
+global OPT_VAR_FLAGS = {"b" "c" "N" "e" "f"};
+global OPT_VAR_DEFAULTS = {"100" "[]" "0" "0" "'%8.8f\t'"};
+global OPT_FLAG_HASARGS = {"b" "c" "f"}; 
 
-#==================================================
-# PARSE COMMAND-LINE ARGUMENTS
-#==================================================
-function key = cellid(list,value)
-	key = find(strcmp(list,value));
-end
+parse_opts
 
-function cmd = set_input_vars(flags,args)
+for k = 1:length(OPTFILES)
 
-	global var_defaults;
-	global var_names; 
-	global var_flags;
-
-	len = length(var_names);
-	cmd = cell(1,len);
-
-	# loop over all var_names and set defaults
-	for k = 1 : len 
-
-		# get index of var_flag in the flags read
-		var_flags{k};
-		j = cellid(flags, var_flags{k});
-
-		# if found, use index j
-		if !isempty(j) 
-			expr = args{j};
-		else
-			expr = var_defaults{k};
-		end
-
-		cmd{k} = [var_names{k} "=" expr ";"];
-	end
-end
-
-#==================================================
-function bool = flag_has_arg(str)
-	global flag_expects_arg;
-	bool = ismember(str, flag_expects_arg);
-end
-
-#==================================================
-function f = get_flag(str)
-	f = str(str != '-');
-end
-
-#==================================================
-function bool = is_flag(str)
-	bool = (str(1) == '-');
-end
-
-#==================================================
-function [flags args files] = parse_opts(list)
-	len = length(list);
-	k = 1;
-	n_arg = 1;
-	n_file = 1;
-
-	[flags,args,files] = deal({});
-
-	while (k <= len)
-		param = list{k};
-
-		if is_flag(param)
-
-			flags{n_arg} = get_flag(param); 
-
-			if flag_has_arg(flags{n_arg}) && (k+1 <= len)
-				args{n_arg} = list{k+1};
-				k += 2;
-			else
-				args{n_arg} = "1";
-				k++;
-			end
-
-			n_arg++;
-
-		else
-			files{n_file} = list{k};
-			n_file++;
-			k++;
-		end
-
-	end
-end
-#==================================================
-# SET DEFAULTS
-#==================================================
-[flags args files] = parse_opts(argv());
-cmd = set_input_vars(flags,args);
-for k = 1 : length(cmd)
-	eval(cmd{k});
-end
-
-#==================================================
-# START PROGRAM
-#==================================================
-
-for k = 1:length(files)
-
-  fin = files{k};
+  fin = OPTFILES{k};
 	data = load(fin);
 	[n,m] = size(data);
 
