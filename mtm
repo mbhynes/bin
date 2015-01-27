@@ -1,0 +1,79 @@
+#!/bin/bash
+#
+# mtm - [M]ake la[T]ex [M]acros
+# 
+# Create a list of latex macros from input files with syntax:
+# 	cmd # command_text 
+# 	cmd command_text
+#
+# From the above, the following output is produced:
+# \newcommand{cmd}[#]{command_text}
+# \newcommand{cmd}{command_text}
+#
+# EXAMPLE:
+#
+# dist \bigcup_i\mathcal{P}_i
+# max 2 \mathbb{max}\left(#1,#2\right)
+#
+# produces:
+#
+# \newcommand{\dist}{\bigcup_i\mathcal{P}_i}
+# \newcommand{\max}[2]{\mathbb{max}\left(#1,#2\right)}
+# 
+# If the output of this file is stored in macros.tex,
+# a tex file with \input{macros} may use 
+# $\max{p}{q}$ 
+# as a valid macro 
+#
+# Internally, this is a wrapper for a short sed script
+#===================================================
+
+SCRIPT_NAME=$(basename $0)
+msg () {
+	echo "$SCRIPT_NAME: $@" 1>&2
+}
+warn () {
+	msg WARNING: $@
+}
+error () {
+	msg ERROR: $@
+}
+
+if (($# == 0))
+then 
+	disp_opts -h -n 30 $0 2>/dev/null
+	exit
+fi
+
+for file in "$@"
+do
+	# sed -r -f ~/bash/texsymbols.sed $1
+	if [ ! -r "$file" ]; then
+		error "$file is not readable"
+		continue
+	fi
+
+	sed -r -f - "$file" <<EOF_SED
+# ignore commented lines
+/^%.*/d
+/^[[:blank:]]*$/d
+
+#replace digit x with [x] arg command
+s/[[:blank:]]+([[:digit:]])[[:blank:]]+/}\[\1\]{/
+t close
+# else:
+# no digits, just close the spacet digits
+s/[[:blank:]]+/}{/
+# t close
+
+:close
+# start command
+s/^/\\\\newcommand{\\\/ 
+
+#end bracket
+s/$/}/
+EOF_SED
+
+done
+
+exit 0

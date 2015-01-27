@@ -1,0 +1,76 @@
+#!/usr/bin/octave -q
+#
+# interp - wrapper to yi = interp1 (x, y, xi, method) 
+#
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Mon Jan 26 12:30:50 2015
+# Last Modified: Mon Jan 26 13:27:44 2015
+# =================================================
+
+global OPT_VAR_NAMES = {"npoints" "method" "xvals" "cols" "output_format"}; 
+global OPT_VAR_FLAGS = {"n" "m" "x" "c" "f"};
+global OPT_VAR_DEFAULTS = {"0" "'cubic'" "[]" "[]" "'%8.8f\t'"};
+global OPT_FLAG_HASARGS = {"n" "m" "x" "c" "f"}; 
+
+parse_opts
+
+dummy_file = ".read.stdin";
+
+if (length(OPTFILES) == 0)
+	OPTFILES={".read.stdin"};
+end
+
+% check if npoints was specified
+np = length(xvals);
+if np 
+	npoints = np;
+end
+
+if ~npoints
+	log_warn("-n <npoints> and -x <[x_1 x_2 ...]> unspecified."); 
+	log_warn("Using 100 uniform steps in input data range");
+	npoints = 100;
+end
+
+for k = 1 : length(OPTFILES)
+	fin = OPTFILES{k};
+	
+	if strcmp(fin,dummy_file)
+		log_info("Reading from stdin");
+		mat = read_mat_stdin();
+	else
+		log_info(["Reading matrix from file: " fin]);
+		mat = load(fin);
+	end
+
+	[nrows ncols] = size(mat); 
+
+	# use column 1 as the ordinates if ncols > 1
+	if (ncols == 1)
+		x = [1:nrows]';
+	else
+		x = mat(:,1);
+	end
+
+	if isempty(xvals)
+		these_xvals = linspace(x(1),x(end),npoints)';
+	else
+		these_xvals = make_col_vec(xvals);
+	end
+	
+	if isempty(cols)
+		cols = [1:ncols];
+	end
+
+	yvals = [these_xvals nan(npoints,length(cols))];
+	k = 2;
+	for c = cols
+		yvals(:,k) = interp1(x,mat(:,c),these_xvals,method,'extrap')';
+		k++;
+	end
+
+	output_str = [repmat(output_format,1,length(cols)+1)];
+	fprintf(1, [output_str(1:end-1) "\n"], yvals');
+end

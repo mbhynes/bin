@@ -1,20 +1,11 @@
 #!/bin/bash
-# plot multiple files on single plot
-
-# if (($# == 0)); then
-# 	echo usage: $0 -o fout "[opts]" fin1 fin2 ...
-# 	echo Plots files using gnuplot, writes to fout
-# 	echo
-# 	echo Options:
-# 	echo "-e == errorbar flag (file data must follow gnuplot format)"
-# 	echo "-x <string> == xlabel string"
-# 	echo "-y <string> == ylabel string"
-# 	echo "-L <str1, str2, ...> == legend string for key"
-# 	echo "-P <header> == position parameters for key, e.g. center"
-# 	echo "-h <header> == gnuplot header"
-# 	exit
-# fi
-
+# plot multiple files on single plot with gnuplot
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Mon Jan 26 13:33:27 2015
+# Last Modified: Mon Jan 26 21:09:49 2015
+#=================================================
 
 # add character escapes to certain strings
 escape_tex_chars() {
@@ -23,13 +14,14 @@ escape_tex_chars() {
 	# echo "$@" | sed -r -e 's/\\/\\\\/g; s/\$/\\$/g;'
 }
 
+# default plot header
 generate_header() {
 	cat <<EOF 
 #
 # $(date)
 #
 
-set terminal $terminal size $size color colortext font '$font' linewidth $linewidth
+set terminal $terminal size $terminal_size color colortext font '$font' linewidth $linewidth
 set samples 500, 500
 set border linewidth $linewidth
 set style fill solid 2.70 noborder
@@ -52,10 +44,10 @@ set style fill border
 # set style fill solid 0.6 border
 
 # Line style for axes
-set style line 80 lt 1 lc rgb "#000000" lw $linewidth
+set style line 80 lt 1 lc rgb "#000000" lw $((linewidth-1))
 
 # Line style for grid
-set style line 81 lt 1 lc rgb "#808080" lw $linewidth 
+set style line 81 lt 1 lc rgb "#808080" lw 1
 set grid back linestyle 81
 
 # Remove border on top and right.  
@@ -70,14 +62,19 @@ set format '%g'
 #set log x
 #set mxtics 10    
 
+set datafile missing "NaN"
+
 EOF
 }
 
 DEFAULT_TERM="postscript eps enhanced"
 
-OPTSTRING=ex:y:L:h:o:P:T:f:s:w:FX:Y:
+OPTSTRING=t:ex:y:L:h:o:P:T:f:s:w:FX:Y:
 while getopts $OPTSTRING opt; do
 	case $opt in
+		t)
+			timeformat="$OPTARG"
+			;;
 		X)
 			xrange="$OPTARG"
 			;;
@@ -88,7 +85,7 @@ while getopts $OPTSTRING opt; do
 			filled="true"
 			;;
 		s)
-			size="$OPTARG"
+			terminal_size="$OPTARG"
 			;;
 		T)
 			terminal="$OPTARG"
@@ -130,16 +127,18 @@ while getopts $OPTSTRING opt; do
 	esac
 done
 
-if [ -z "$fout" ]; then
-	disp_opts -h -n 10 $0 2>/dev/null
-	exit 1
-fi
-
 shift $((OPTIND - 1))
 
 nfiles=$#
 if ((nfiles == 0)); then
-	exit
+	echo usage: $0 -o fout "[opts]" fin1 fin2 ...
+	disp_opts -h -n 10 $0 2>/dev/null
+	exit 1
+fi
+
+if [ -z "$fout" ]; then
+	disp_opts -h -n 10 $0 2>/dev/null
+	exit 1
 fi
 
 # check if variables are set; else set defaults
@@ -147,8 +146,8 @@ if [ -z "$linewidth" ]; then
 	linewidth=2
 fi
 
-if [ -z "$size" ]; then
-	size="6,3"
+if [ -z "$terminal_size" ]; then
+	terminal_size="6,3"
 fi
 
 if [ -z "$terminal" ] && [ -z "$header"]; then
@@ -196,6 +195,12 @@ else
 	# fi
 
 	generate_header > $plot_script
+	if [ -n "$timeformat" ]; then
+		cat >> $plot_script <<EOF
+set xdata time
+set timefmt "$timeformat"
+EOF
+	fi
 fi
 
 # set the x,y labels, if they exist
