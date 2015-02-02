@@ -5,7 +5,7 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Mon Feb  2 11:02:19 2015
-# Last Modified: Mon Feb  2 11:15:18 2015
+# Last Modified: Mon Feb  2 14:27:38 2015
 # =================================================
 
 DEST=~/bib
@@ -39,11 +39,12 @@ error () {
 }
 
 name=$(xclip -o \
-	| head -n 1 \
+	| grep '@' \
 	| sed -r -e 's/@[[:alpha:]]+[[:space:]]*\{[[:space:]]*([[:alnum:]]+),[[:space:]]*$/\1/')
 
 if [ -z "$name" ]; then
-	error "Could not parse a bibtex entry from clipboard"
+	error "Could not parse a bibtex entry from clipboard:"
+	xclip -o 1>&2
 	exit 1
 fi
 
