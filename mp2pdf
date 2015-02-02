@@ -10,7 +10,9 @@ while (($# > 0))
 do
 	suffix=$(ext $1)
 	prefix=$(basename $1 $suffix)
-	mptopdf $1
-	mv "$prefix-0.pdf" "$prefix.pdf"
+	folder=$(dirname $1)
+	mptopdf $1 1>&2
+	mv "$folder/$prefix-0.pdf" "$folder/$prefix.pdf"
+	rm $prefix.0 $prefix.log
 	shift
 done
