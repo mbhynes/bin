@@ -74,9 +74,9 @@ cat_getopts_block() {
 print_each_opt() {
 	grep -E -A1 -- "^[[:space:]]*[^:?])[[:space:]]*" \
 		| sed -r -f <( cat <<EOF
-			s/^[[:space:]]*([:alnum:]]+)\).*/-@\1/
+			s/^[[:space:]]*([[:alnum:]]+)\).*/-@\1/
 			/^--$/d
-			s/[[:space:]]([[:alnum:]_]+)=".OPTARG"/<\1>/
+			s/[[:space:]]([[:alnum:]_]+)=[\"\']*.OPTARG[\"\']*/<\1>/
 			# s/^[[:space:]]*([[:alnum:]_]+)=\"*\$OPTARG\"*[[:space:]]*/\1/
 EOF) \
 		| tr '\n' ' ' \

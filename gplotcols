@@ -1,19 +1,11 @@
 #!/bin/bash
-# plot single files' columns on single plot
-
-if (($# == 0)); then
-	echo usage: $0 -o fout "[opts]" fin
-	echo Plots files using gnuplot, writes to fout
-	echo
-	echo Options:
-	echo "-e == errorbar flag (file data must follow gnuplot format)"
-	echo "-x <string> == xlabel string"
-	echo "-y <string> == ylabel string"
-	echo "-L <str1, str2, ...> == legend string for key"
-	echo "-P <header> == position parameters for key, e.g. center"
-	echo "-h <header> == gnuplot header"
-	exit
-fi
+# plot a file's columns on single plot
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Mon Jan 26 13:33:27 2015
+# Last Modified: Mon Jan 26 21:39:24 2015
+#=================================================
 
 
 # add character escapes to certain strings
@@ -23,7 +15,7 @@ escape_tex_chars() {
 	# echo "$@" | sed -r -e 's/\\/\\\\/g; s/\$/\\$/g;'
 }
 
-generate_header() {
+gnuplot_header() {
 	cat <<EOF 
 #
 # $(date)
@@ -63,6 +55,8 @@ set format '%g'
 #set log x
 #set mxtics 10    
 
+set datafile missing "NaN"
+
 EOF
 }
 
@@ -74,10 +68,12 @@ if which gplot_vars 1>&2 2>/dev/null; then
 fi
 
 
-OPTSTRING=ex:y:L:h:o:P:T:f:s:w:
-while getopts $OPTSTRING opt
-do
+OPTSTRING=t:ex:y:L:h:o:P:T:f:s:w:
+while getopts $OPTSTRING opt; do
 	case $opt in
+		t)
+			timeformat="$OPTARG"
+			;;
 		s)
 			size="$OPTARG"
 			;;
@@ -121,18 +117,14 @@ do
 	esac
 done
 
-if [ -z "$fout" ]; then
-	disp_opts -h -n 10 $0 2>/dev/null
-	exit 1
-fi
-
 shift $((OPTIND - 1))
 
-file="$1"
 nfiles=$#
-if ((nfiles != 1)); then
-	echo "Can only support a single file; see gplot."
-	exit
+
+if ((nfiles == 0)) || [ -z "$fout" ]; then
+	echo usage: $0 -o fout_prefix "[opts]" fin
+	disp_opts -h -n 10 $0 2>/dev/null
+	exit 1
 fi
 
 # check if variables are set; else set defaults
@@ -152,115 +144,120 @@ if [ -z "$font" ]; then
 	font="Courier,20,Bold" 
 fi
 
-# generate script to pass to gnuplot
-plot_script=$(mktemp)
+fnum=0
 
-# write header to script
-if [ -r "$header" ]; then
-	cat $header > $plot_script
-else
+for file in "$@"; do
+	((fnum++))
 
-	# change output filetype to default .tex
-	# if [[ "$terminal" == "$DEFAULT_TERM" ]]
-	# then
-	# 	fout_ext=$(ext $fout)
-	# 	fout_prefix=$(basename $fout $fout_ext)
-	# 	fout=$fout_prefix.tex
-	# fi
+	# generate script to pass to gnuplot
+	plot_script=$(mktemp)
 
-	generate_header > $plot_script
-fi
-
-# set the x,y labels, if they exist
-if [ "$xtit" ]; then
-	echo "set xlabel '$(escape_tex_chars $xtit)'" >> $plot_script
-fi
-if [ "$ytit" ]; then
-	echo "set ylabel '$(escape_tex_chars $ytit)'" >> $plot_script
-fi
-
-# set the legend, if it exists
-# leg_pos allows position info to be entered; it may be empty
-if [ "$legend" ]; then
-	echo "set key $leg_pos reverse enhanced autotitle nobox" >> $plot_script
-else
-	echo "set key off" >> $plot_script
-fi
-
-# set output file
-echo "set output '$fout'" >> $plot_script
-
-# =============================================
-# plot files
-# =============================================
-
-ncols=$(head -n 1 $file | wc -w)
-
-if [ "$errorbars" ]; then
-	klast=$((ncols-1))
-	kvals=$(seq 2 2 $klast)
-else
-	klast=$((ncols))
-	kvals=$(seq 2 $klast)
-fi
-
-leg_k=0
-for k in $kvals
-do
-	if [ -z "${legend[k]}" ];	then
-		leg_entry=""
+	# write header to script
+	if [ -r "$header" ]; then
+		cat $header > $plot_script
 	else
-		leg_entry="$( escape_tex_chars ${legend[$leg_k]} )"
-		((leg_k++))
-	fi
-	echo Adding "$leg_entry" to plot
-
-# =============================================
-# plotting is divided into sections: 
-# 	multiple plots require linebreaks + commas
-
-	num=$k
-	line="ls $num"
-
-# =============================================
-# first plot command; use filename, follow with comma and linebreak
-	if ((k == 2)) ;	then
-		if [ "$errorbars" ] && ((ncols > 2));	then
-			echo "plot '$file' using 1:$k:$((k+1)) title '$leg_entry' with errorbars $line, \\" >> $plot_script
-			echo "	'' using 1:$k notitle with lines ls $num, \\" >> $plot_script
-		else
-			echo "plot '$file' using 1:$k title '$leg_entry' $line, \\" >> $plot_script
-		fi
-
-# =============================================
-# last plot command:
-# 	no filename, no linebreak
-	elif ((k == klast)) ;	then
-		if [ "$errorbars" ] && ((ncols > 2));	then
-			echo "	'' using 1:$k:$((k+1)) title '$leg_entry' with errorbars $line, \\" >> $plot_script
-			echo "	'' using 1:$k notitle with lines ls $num" >> $plot_script
-		else
-			echo "	'' using 1:$k title '$leg_entry' $line" >> $plot_script
-		fi
-
-# =============================================
-# middle plot commands
-# 	no filename, comma + linebreak
-	else
-		if [ "$errorbars" ] && ((ncols > 2));	then
-			echo "	'' using 1:$k:$((k+1)) title '$leg_entry' with errorbars $line, \\" >> $plot_script
-			echo "	'' using 1:$k notitle with lines ls $num, \\" >> $plot_script
-		else
-			echo "	'' using 1:$k title '$leg_entry' $line, \\" >> $plot_script
+		generate_header > $plot_script
+		if [ -n "$timeformat" ]; then
+			cat >> $plot_script <<EOF
+set xdata time
+set timefmt "$timeformat"
+EOF
 		fi
 	fi
 
-	((k++))
+	# set the x,y labels, if they exist
+	if [ "$xtit" ]; then
+		echo "set xlabel '$(escape_tex_chars $xtit)'" >> $plot_script
+	fi
+	if [ "$ytit" ]; then
+		echo "set ylabel '$(escape_tex_chars $ytit)'" >> $plot_script
+	fi
+
+	# set the legend, if it exists
+	# leg_pos allows position info to be entered; it may be empty
+	if [ -n "$legend" ]; then
+		echo "set key $leg_pos reverse enhanced autotitle nobox" >> $plot_script
+	else
+		echo "set key off" >> $plot_script
+	fi
+
+	# set output file
+	echo "set output '$fout-$fnum'" >> $plot_script
+
+	# =============================================
+	# plot files
+	# =============================================
+
+
+	ncols=$(head -n 1 $file | wc -w)
+
+	if [ "$errorbars" ]; then
+		klast=$((ncols-1))
+		kvals=$(seq 2 2 $klast)
+	else
+		klast=$((ncols))
+		kvals=$(seq 2 $klast)
+	fi
+
+	leg_k=0
+	for k in $kvals
+	do
+		if [ -z "${legend[$leg_k]}" ];	then
+			leg_entry=""
+		else
+			leg_entry="$( escape_tex_chars ${legend[$leg_k]} )"
+			((leg_k++))
+		fi
+		echo Adding "$leg_entry" to plot
+
+	# =============================================
+	# plotting is divided into sections: 
+	# 	multiple plots require linebreaks + commas
+
+		num=$k
+		line="ls $num"
+
+	# =============================================
+	# first plot command; use filename, follow with comma and linebreak
+		if ((k == 2)) ;	then
+			if [ "$errorbars" ] && ((ncols > 2));	then
+				echo "plot '$file' using 1:$k:$((k+1)) title '$leg_entry' with errorbars $line, \\" >> $plot_script
+				echo "	'' using 1:$k notitle with lines ls $num, \\" >> $plot_script
+			else
+				echo "plot '$file' using 1:$k title '$leg_entry' $line, \\" >> $plot_script
+			fi
+
+	# =============================================
+	# last plot command:
+	# 	no filename, no linebreak
+		elif ((k == klast)) ;	then
+			if [ "$errorbars" ] && ((ncols > 2));	then
+				echo "	'' using 1:$k:$((k+1)) title '$leg_entry' with errorbars $line, \\" >> $plot_script
+				echo "	'' using 1:$k notitle with lines ls $num" >> $plot_script
+			else
+				echo "	'' using 1:$k title '$leg_entry' $line" >> $plot_script
+			fi
+
+	# =============================================
+	# middle plot commands
+	# 	no filename, comma + linebreak
+		else
+			if [ "$errorbars" ] && ((ncols > 2));	then
+				echo "	'' using 1:$k:$((k+1)) title '$leg_entry' with errorbars $line, \\" >> $plot_script
+				echo "	'' using 1:$k notitle with lines ls $num, \\" >> $plot_script
+			else
+				echo "	'' using 1:$k title '$leg_entry' $line, \\" >> $plot_script
+			fi
+		fi
+
+		((k++))
+	done
+
+	cat $plot_script
+	gnuplot $plot_script
+	rm $plot_script
+
 done
-
-cat $plot_script
-gnuplot $plot_script
-rm $plot_script
 
 # convert default output to eps 
 # if [[ "$terminal" == "$DEFAULT_TERM" ]]

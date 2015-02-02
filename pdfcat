@@ -1,0 +1,50 @@
+#!/bin/bash
+#
+# pdfcat -o <outputfile> fin1 fin2 ... 
+# 
+# Concatenate pdf files into a single file with gs
+# 
+
+SCRIPT_NAME=$(basename $0)
+msg () {
+	echo "$SCRIPT_NAME: $@" 1>&2
+}
+warn () {
+	msg WARNING: $@
+}
+error () {
+	msg ERROR: $@
+}
+
+optstring="o:"
+while getopts "$optstring" opt; do
+	case "$opt" in
+		o)
+			fout="$OPTARG" 
+			;;
+		:)
+			error "-$opt requires argument" 
+			;; 
+		?)
+			error invalid option
+			;; 
+	esac
+done
+
+if [ $# -eq 0 ]
+then
+	disp_opts -h -n 6 $0 2>/dev/null
+	exit 1
+fi
+
+FILES_IN=''
+while (( $# > 1 ))
+do
+	FILES_IN="$FILES_IN $1"
+	shift
+done
+
+msg "compiling $fout"
+gs -dBATCH -q -dNOPAUSE -sDEVICE=pdfwrite -sOutputFile=$fout $FILES_IN
+
+exit $?

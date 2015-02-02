@@ -1,0 +1,5 @@
+#!/bin/bash
+
+src="-selection primary"
+dest="-selection clipboard"
+xclip -o $src | tee >(xclip $dest)
