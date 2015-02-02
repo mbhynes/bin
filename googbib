@@ -1,0 +1,70 @@
+#!/bin/bash
+#
+# /home/mike/bin/googbib
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Mon Feb  2 11:02:19 2015
+# Last Modified: Mon Feb  2 11:15:18 2015
+# =================================================
+
+DEST=~/bib
+SCRIPT_NAME=$(basename $0)
+clobber_flag=""
+
+optstring="c"
+while getopts "$optstring" opt; do
+	case "$opt" in
+		c)
+			clobber_flag="true"
+			;;
+		:)
+			error "-$opt requires argument" 
+			;; 
+		?)
+			error invalid option
+			;; 
+	esac
+done
+shift $((OPTIND - 1))
+
+msg () {
+	echo "$SCRIPT_NAME: $@" 1>&2
+}
+warn () {
+	msg WARNING: $@
+}
+error () {
+	msg ERROR: $@
+}
+
+name=$(xclip -o \
+	| head -n 1 \
+	| sed -r -e 's/@[[:alpha:]]+[[:space:]]*\{[[:space:]]*([[:alnum:]]+),[[:space:]]*$/\1/')
+
+if [ -z "$name" ]; then
+	error "Could not parse a bibtex entry from clipboard"
+	exit 1
+fi
+
+file="$DEST/$name.bib"
+if [ ! -f "$file" ]; then
+	msg "Writing entry to $file"
+	xclip -o > "$file"
+else
+	warn "$file already exists" 
+	if diff --normal "$file" <(xclip -o) > /dev/null; then
+		warn "$file is identical with the clipboard buffer" 
+		exit 0
+	else
+		warn "$file differs from clipboard buffer:" 
+		diff -y "$file" <(xclip -o) 1>&2
+	fi
+
+	if [ -n "$clobber_flag" ]; then
+		warn "Clobbering $file"
+		xclip -o >| "$file"
+	fi
+	
+fi
+
