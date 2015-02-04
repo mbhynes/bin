@@ -6,15 +6,24 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Mon Jan 26 12:30:50 2015
-# Last Modified: Mon Jan 26 13:27:44 2015
+# Last Modified: Mon Feb  2 19:18:21 2015
 # =================================================
 
-global OPT_VAR_NAMES = {"npoints" "method" "xvals" "cols" "output_format"}; 
-global OPT_VAR_FLAGS = {"n" "m" "x" "c" "f"};
-global OPT_VAR_DEFAULTS = {"0" "'cubic'" "[]" "[]" "'%8.8f\t'"};
+global OPT_VAR_NAMES = {"npoints" "method" "xvals" "cols" "output_format" "display_help"}; 
+global OPT_VAR_FLAGS = {"n" "m" "x" "c" "f" "h"};
+global OPT_VAR_DEFAULTS = {"0" "'cubic'" "[]" "[]" "'%8.8f\t'" "false"};
 global OPT_FLAG_HASARGS = {"n" "m" "x" "c" "f"}; 
 
+global OPTFLAGS;
+global OPTARGS;
+global OPTFILES;
+
 parse_opts
+
+if help_flag_specified()
+	display_opts()
+	exit
+end
 
 dummy_file = ".read.stdin";
 

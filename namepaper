@@ -1,0 +1,184 @@
+#!/bin/bash
+#
+# namepaper [-p -b] file.bib file2.bib namepaper -c [-p -b]
+#
+# Print the a unix filename for a paper using the specified bibliographic entry
+# Alternatively, print the unix filename for a bibtex entry using the specified
+# bibliographic entry
+#
+# If the -c flag is given, use the system clipboard instead of a bibtex file
+#
+# Tested to work with google scholar's bibtex export, since theirs is the
+# cleanest.
+#
+# Stupid filename characters; ie <' " @  $ % ( ) [ ] { } ? _ & . ,> are
+# deleted. Duh.
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Tue 03 Feb 2015 02:41:11 PM EST
+# Last Modified: Tue 03 Feb 2015 04:07:39 PM EST
+# =================================================
+
+MIN_WORD_LEN=4
+paper_dir=~/papers
+use_clipboard=""
+print_paper_name="true"
+_fname_delim="__"
+
+SCRIPT_NAME=$(basename $0)
+msg () {
+	echo "$SCRIPT_NAME: $@" 1>&2
+}
+warn () {
+	msg WARNING: $@
+}
+error () {
+	msg ERROR: $@
+}
+
+get_iname_sedstr() {
+	str="$1"
+	k=0
+	len=${#str}
+
+	sed_str=""
+	while ((k < len)); do
+		char=${str:$k:1}
+		both_chars="$(tr 'A-Z' 'a-z' <<< $char)$(tr 'a-z' 'A-Z' <<< $char)"
+		sed_str="$sed_str[$both_chars]"
+		((k++))
+	done
+	echo $sed_str
+}
+
+# print the bibtex entry from $1=<entry_field_name>
+print_bib_entry() { 
+	_space='[[:space:]]*'
+	_brace='[\{\}\"]'
+
+	# bibtex entry pattern for grep
+	_entry=$_space"\<$1\>"$_space"="$_space$_brace
+
+	# get an '-ignorecase' pattern for sed.
+	_sed_entry=$_space"$(get_iname_sedstr $1)"$_space"="$_space$_brace
+	
+	grep -i "^$_entry" \
+		| sed -r -e "s/^$_sed_entry(.*)$_space$_brace$_space,?$/\1/"
+}
+
+print_title() {
+	chars_to_delete="'\"\@\\\$\%\(\)\[\]\{\}\?\_\&\.\,\<\>"
+	chars_to_underscore="\:\;\-\ "
+	print_bib_entry "title" \
+		| tr -d "$chars_to_delete" \
+		| tr 'A-Z' 'a-z' \
+		| tr -s "$chars_to_underscore" '_'
+}
+
+print_year() {
+	print_bib_entry "year"
+}
+
+print_first_author() {
+	print_bib_entry "author" \
+		| cut -d ',' -f 1 \
+		| cut -d ' ' -f 1 \
+		| tr 'A-Z' 'a-z'
+}
+
+print_filename() { #tmpfile
+	tmpfile=$(mktemp)
+	cat > "$tmpfile"
+	if [ $? ]; then
+		year=$(print_year <"$tmpfile")
+		author=$(print_first_author <"$tmpfile")
+		title=$(print_title <"$tmpfile")
+
+		echo "$author$_fname_delim$title$_fname_delim$year".pdf
+		rm "$tmpfile"
+	fi
+}
+
+print_bibname() { #tmpfile
+	tmpfile=$(mktemp)
+	cat > "$tmpfile"
+	if [ $? ]; then
+		year=$(print_year <"$tmpfile")
+		author=$(print_first_author <"$tmpfile")
+		title=$(print_title <"$tmpfile" \
+			| cut -d "_" -f1 \
+		)
+
+		len=${#title}
+		k=0
+		while ((len < MIN_WORD_LEN)); do
+			title=$(print_title <"$tmpfile" \
+				| cut -d "_" -f$k \
+			)
+			len=${#title}
+			((k++))
+		done
+
+		echo "$author$year$title".bib
+		rm "$tmpfile"
+	fi
+}
+
+optstring="cdpb"
+while getopts "$optstring" opt; do
+	case "$opt" in
+		p)
+			print_paper_name="true"
+			;;
+		b)
+			print_bib_name="true"
+			print_paper_name=""
+			;;
+		d)
+			_fname_delim="$OPTARG"
+			;;
+		c)
+			use_clipboard="true"
+			;;
+		:)
+			error "-$opt requires argument" 
+			;; 
+		?)
+			error $(basename $0)"invalid option"
+			;; 
+	esac
+done
+shift $((OPTIND - 1))
+
+nfiles=$#
+
+if [ -n "$use_clipboard" ] && ((nfiles == 0)); then
+
+	if [ -n "$print_paper_name" ]; then
+		xclip -o | print_filename
+	fi
+	if [ -n "$print_bib_name" ]; then
+		xclip -o | print_bibname
+	fi
+	exit 0
+
+elif ((nfiles == 0)); then
+	disp_opts -n 20 -h $0 2>/dev/null
+	exit 1
+fi
+
+for f in "$@"; do
+	if [ -r "$f" ]; then
+		if [ -n "$print_paper_name" ]; then
+			print_filename < "$f"
+		fi
+		if [ -n "$print_bib_name" ]; then
+			print_bibname < "$f"
+		fi
+	else
+		error "$f was not readable"
+	fi
+done
+
+exit 0

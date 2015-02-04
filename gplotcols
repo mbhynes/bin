@@ -4,7 +4,7 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Mon Jan 26 13:33:27 2015
-# Last Modified: Mon Jan 26 21:39:24 2015
+# Last Modified: Mon Feb  2 20:12:09 2015
 #=================================================
 
 
@@ -15,7 +15,7 @@ escape_tex_chars() {
 	# echo "$@" | sed -r -e 's/\\/\\\\/g; s/\$/\\$/g;'
 }
 
-gnuplot_header() {
+generate_header() {
 	cat <<EOF 
 #
 # $(date)
@@ -160,6 +160,7 @@ for file in "$@"; do
 		if [ -n "$timeformat" ]; then
 			cat >> $plot_script <<EOF
 set xdata time
+set xtics rotate by -40 
 set timefmt "$timeformat"
 EOF
 		fi
@@ -182,7 +183,11 @@ EOF
 	fi
 
 	# set output file
-	echo "set output '$fout-$fnum'" >> $plot_script
+	if ((nfiles == 1)); then
+		echo "set output '$fout'" >> $plot_script
+	else
+		echo "set output '$fout-$fnum'" >> $plot_script
+	fi
 
 	# =============================================
 	# plot files

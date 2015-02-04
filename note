@@ -14,18 +14,15 @@ TEXFLAGS="-file-line-error -interaction nonstopmode -shell-escape"
 DIAGNOSE=TRUE
 
 #=========================================
-expand_macros() #file 
-{
+expand_macros() { #file 
 	sed -i -e 's/^x$/\\begin{center} *\\hspace{3cm}*\\hspace{3cm}*\\end{center}/g' $1
 }
 
-section_string() #string 
-{
+section_string() { #string 
 	echo "\\section*{$1}"
 }
 
-entry_name() #file
-{
+entry_name() { #file
 	file=$1
 	echo $file | sed -r 's/.*([[:digit:]]{4}\.[[:digit:]]{2}\.[[:digit:]]{2})\.tex/\1/'
 }
@@ -84,14 +81,12 @@ month=''
 year_files=''
 month_files=''
 tot_files=''
-while (($# > 0))
-do
+while (($# > 0)); do
 
 	#check for years with 4 numbers: 2012
-	if echo "$1" | egrep -wq [0-9]{4}
-	then
+	if egrep -wq [0-9]{4} <<< "$1"; then
 		year=$1
-		if echo "$2" | egrep -wq [0-9]{02}
+		if egrep -wq [0-9]{02} <<< "$2"
 		then
 			year_files=$(files_from_year $year)
 		else
@@ -103,7 +98,6 @@ do
 	then
 		month=$1
 		tot_files="$tot_files $(echo $year_files | tr ' ' '\n' | egrep "/$year/$month/")"
-		# files=$(echo $files  | egrep "/$year/$month/")
 	fi
 
 	shift

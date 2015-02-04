@@ -45,10 +45,16 @@ global OPT_VAR_NAMES;
 global OPT_VAR_FLAGS;
 global OPT_VAR_DEFAULTS;
 global OPT_FLAG_HASARGS;
+global OPTFLAGS;
+global OPTARGS;
+global OPTFILES;
 
 %==================================================
 % UTILITY FUNCTIONS 
 %==================================================
+function write_stdout(str);
+	fprintf(1, "%s: %s\n", program_name(), str);
+end
 function write_stderr(str);
 	fprintf(2, "%s: %s\n", program_name(), str);
 end
@@ -67,6 +73,33 @@ function mat = read_mat_stdin()
 	mat = dlmread(stdin,'');
 end
 
+function bool = help_flag_specified(help_flag)
+	global OPTFLAGS;
+	if ~nargin
+		help_flag="h";
+	end
+	bool = ismember(help_flag,OPTFLAGS);
+end
+
+function display_opts()
+	global OPT_VAR_NAMES;
+	global OPT_VAR_FLAGS;
+	global OPT_VAR_DEFAULTS;
+	global OPT_FLAG_HASARGS;
+
+	for k = 1:length(OPT_VAR_FLAGS)
+		v = OPT_VAR_FLAGS{k};
+		name = OPT_VAR_NAMES{k};
+		default_val = OPT_VAR_DEFAULTS{k};
+
+		if flag_has_arg(v);
+			str = ['-' v ' [' name ']; default=' default_val ];
+		else
+			str = ['-' v ' #boolean_flag; ' name '=true; default=' default_val ];
+		end
+		write_stdout(str);
+	end
+end
 %==================================================
 % COMMANDLINE PARSING FUNCTIONS
 %==================================================
