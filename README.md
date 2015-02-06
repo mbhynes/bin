@@ -1,12 +1,3 @@
-> 
-> README.md
-> =================================================
-> Author: Michael B Hynes, mbhynes@uwaterloo.ca
-> License: GPL 3
-> Creation Date: Fri Feb  6 15:47:24 2015
-> Last Modified: Fri Feb  6 15:58:50 2015
-> =================================================
-
 ~/bin
 ================
 Contains my shell scripts and binaries I've borrowed from
