@@ -1,14 +1,18 @@
 #!/bin/bash
 #
-# catsub
-# print subsections of files 
+# catsub -1 n1 -2 n2 [file1 file2 ...]
 #
-# catsub -1 line_1 -2 line_2
+# Print lines [n1 ... n2] of files, inclusive. 
+# Error checking is performed on n1,n2 to ensure:
+#	1. n2 >= n1
+# 
+# If -1 n1 or -2 n2 are unspecified, n1 = 1; n2 = EOF
+#
 # =================================================
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Sun Jan 25 16:21:55 2015
-# Last Modified: Sun 25 Jan 2015 08:41:09 PM EST
+# Last Modified: Fri Feb  6 13:16:24 2015
 # =================================================
 
 line1=""
@@ -24,7 +28,6 @@ warn () {
 error () {
 	msg ERROR: $@
 }
-
 
 optstring="1:2:"
 while getopts "$optstring" opt; do
@@ -68,20 +71,19 @@ for file in "$@"; do
 	fi
 
 	len=$(wc -l <$file)
-	delta=$((line2 - line1 + 1))
-
-	if ((line1 > line2)); then
-		warn "line1 > line2: $line1 > $line2"
-		tmp=$line2
-		line2=$line1
-		line1=$tmp
-	fi
-
 	if ((line2 > len)); then
 		warn "line2 > file_len: $line2 > $len; using line2=$len"
 		line2=$len
 	fi
 
+	if ((line1 > line2)); then
+		warn "line1 > line2: $line1 > $line2: swapping values"
+		tmp=$line2
+		line2=$line1
+		line1=$tmp
+	fi
+
+	delta=$((line2 - line1 + 1))
 	head -n $line2 $file \
 		| tail -n $delta
 

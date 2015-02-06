@@ -1,8 +1,12 @@
 #!/bin/bash
 #
-# disp_opts
+# disp_opts [-h] [-n <num_header_lines>]
 #
-# Display the getopts options in a bash script
+# Display the getopts options in a bash script to
+# auto-document options in scripts. 
+#
+# If -h is given, display the file header within the first
+# -n <num_header_lines> of the file (default: 20).
 #
 # This script uses grep to extract the following patterns:
 # 1. while getopts "$var" str; do
@@ -29,9 +33,6 @@
 
 NUM_HEADER_LINES=20
 display_header=""
-display_=""
-var1=""
-var2=""
 
 SCRIPT_NAME=$(basename $0)
 msg () {

@@ -1,51 +1,41 @@
 #!/bin/bash
-# needs to be debugged. Something's wrong.
+# proper_noun
+# 
+# Convert stdin strings into Proper Nouns;
+#
+# Example:
+# $ proper_noun <<< "de doop ba woop"
+#	De Doop Ba Woop
+#
+# Note: this is a slow and stupid implementation. But it
+# works. Internally, it uses a sed script written to a
+# tempfile.
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Fri Feb  6 14:15:15 2015
+# Last Modified: Fri Feb  6 14:18:53 2015
+# =================================================
 
-to_lower() 
-{
-	echo $1 | tr 'A-Z' 'a-z' 
+to_lower() {
+	tr 'A-Z' 'a-z' 
 }
 
-make_script()
+make_sed_script()
 {
 	for c in {a..z}
 	do
-		C=$(echo $c | tr 'a-z' 'A-Z')
+		C=$(tr 'a-z' 'A-Z' <<< $c)
 		echo "s/\<$c([[:alpha:]\-_]*)\>/$C\1/g" 
 	done
 }
 
-first_let_upper() 
-{
-	echo $1 | sed -r -f $tmpscript
-}
-
 tmpscript=$(mktemp)
-make_script > $tmpscript 
+make_sed_script > $tmpscript 
 
-if (($# == 0))
-then
-
-	IFS=$'\n'
-	while read line
-	do
-		first_let_upper $(to_lower $line)
-	done < "${1:-/proc/${$}/fd/0}"
-
-else
-	while (($# > 0)) 
-	do
-		IFS=$'\n'
-		if [ -f "$1" ]
-		then
-			while read line
-			do
-				first_let_upper $(to_lower $line)
-			done < "${1:-/proc/${$}/fd/0}"
-		fi
-
-		shift
-	done 
-fi
+while read line; do
+	to_lower <<< $line \
+		| sed -r -f $tmpscript
+done 
 
 rm $tmpscript

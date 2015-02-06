@@ -1,5 +1,21 @@
 #!/bin/bash
+#
+# clip
+#
+# Copy primary selection to clipboard and print it.
+# Interfaces firefox and terminal clipboards.
+#
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Fri Feb  6 13:21:33 2015
+# Last Modified: Fri Feb  6 13:22:26 2015
+# =================================================
 
+# copy
 src="-selection primary"
 dest="-selection clipboard"
-xclip -o $src | tee >(xclip $dest)
+xclip -o $src | xclip $dest
+
+# print to stdout
+xclip -o

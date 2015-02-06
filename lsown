@@ -1,5 +1,10 @@
 #!/bin/bash
-# list the owner of files
+#
+# lsown [dir1 dir2 ...]
+#
+# List files belonging to $USER in the given directories
+# This script is slow and dumb. It's just to supprss warning
+# messages when deleting files from /tmp on a shared env.
 
 if [ "$#" -eq 0 ]; then
 	DIRS="$PWD"
@@ -7,13 +12,21 @@ else
 	DIRS="$@"
 fi
 
+print_file_owner()
+{
+	file="$1"
+	ls -oad "$file" \
+		| cut -d " " -f3
+}
+
 ls_user_files() # -dir
 {
+	dir=$1
 	IFS=$'\n'
 	delim=' '
-	for file in $(ls $1/); do
-		if grep -q "$USER" <(ls -oad "$1/$file" | cut -d " " -f3); then
-			echo "$1/$file"
+	for file in $(ls $dir/); do
+		if grep -q "$USER" <<< $(print_file_owner $dir/$file); then
+			echo "$dir/$file"
 		fi
 	done
 }

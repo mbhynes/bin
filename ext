@@ -1,11 +1,15 @@
 #!/bin/bash
 #
-# ext [file1 file2 ...]
+# ext [-l] [file1 file2 ...]
 #
 # Print the file extension of input files.
 #
-# The extension is taken as the suffix of the rightmost
-# substring beginning with a period, '.'
+# The extension is taken (by default) as the of the
+# shortest suffix beginning with a period.
+# 
+# Specifying -l will find the longest suffix beginning with
+# a period (search from the "leftmost" character of the
+# string)
 #
 # >> ext test.png test.png.old .rc test
 # .png
@@ -13,25 +17,58 @@
 # .rc
 # <nullstring>
 #
+# >> ext -l test.png test.png.old .rc test
+# .png
+# .png.old
+# .rc
+# <nullstring>
+#
+#===================================================
 # Creation Date: Tue 15 Oct 2013 05:12:54 PM EDT
-# Last Modified: Sun 25 Jan 2015 08:45:03 PM EST
+# Last Modified: Fri Feb  6 13:35:42 2015
 #===================================================
 
-#!/bin/bash
-
-# print file extensions
-if (( $# == 0 ))
+if (($# == 0))
 then
-	disp_opts -h -n 20 $0 2>/dev/null
-	# echo "usage: ext.sh <f1.ext1> ... <fn.extn>"
-	# echo ">>.ext1 .ext2 .ext3"
+	disp_opts -h -n 30 $0 2>/dev/null
 	exit 1
 fi
-while (( $# > 0))
-do
+
+read_from_left=""
+
+SCRIPT_NAME=$(basename $0)
+msg () {
+	echo "$SCRIPT_NAME: $@" 1>&2
+}
+warn () {
+	msg WARNING: $@
+}
+error () {
+	msg ERROR: $@
+}
+
+ext_from_left() {
+	s=$1
+	n=${#s}
+	i=0
+
+	while [ "${s: $i:1}" != '.' ] && ((i < n))
+	do
+		((i++))
+	done
+	if ((i <= n))
+	then
+		echo ${s: $i}
+	else
+		echo
+	fi
+}
+
+ext_from_right() {
 	s=$1
 	n=${#s}
 	i=-1
+
 	while [ "${s: $i:1}" != '.' ] && ((n+i >= 0))
 	do
 		((i--))
@@ -42,6 +79,32 @@ do
 	else
 		echo
 	fi
+}
+
+optstring="l"
+while getopts "$optstring" opt; do
+	case "$opt" in
+		l)
+			read_from_left="true"
+			;;
+		:)
+			error "-$opt requires argument" 
+			;; 
+		?)
+			error invalid option
+			;; 
+	esac
+done
+shift $((OPTIND - 1))
+
+for str in "$@"; do
+
+	if [ -n "$read_from_left" ]; then
+		ext_from_left $(basename $str)
+	else
+		ext_from_right $(basename $str)
+	fi
+
 	shift
 done
 exit 0

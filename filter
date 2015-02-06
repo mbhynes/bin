@@ -1,5 +1,8 @@
 #!/usr/bin/octave -qf
-# apply discrete filter of input OPTFILES
+#
+# Comandline interface to GNU octave's filter
+#
+# Apply discrete filter of input OPTFILES.
 #
 #=====================================
 # ex: set filetype=octave:

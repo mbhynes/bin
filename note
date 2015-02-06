@@ -1,19 +1,44 @@
-#=========================================
 #!/bin/bash
 # 
-# note: an automated journaling script
-#=========================================
+# note - an automated journaling script
+#
+# Running note without arguments creates a file:
+# $JOURNAL_DIR/year/month/year.month.day.tex
+#
+# note [year1 year2 ...] compiles all of the entries from
+# those years into a pdf file.
+# 
+# note [year1 [month1 month2 ...] ] ... compiles just those
+# months from the preceding year
+# 
+# The header and footer for the output pdf are specified in
+# this script by:
+# FOUT=$JOURNAL_DIR/out.tex
+# HEADER=$JOURNAL_DIR/header.tex
+# FOOTER=$JOURNAL_DIR/append.tex
+#
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Fri Feb  6 13:52:55 2015
+# Last Modified: Fri Feb  6 14:00:48 2015
+# =================================================
 
-ROOT=~/journal
-FOUT=$ROOT/out.tex
-HEADER=$ROOT/header.tex
-FOOTER=$ROOT/append.tex
+JOURNAL_DIR=~/journal
+FOUT=$JOURNAL_DIR/out.tex
+HEADER=$JOURNAL_DIR/header.tex
+FOOTER=$JOURNAL_DIR/append.tex
 REGEX="posix-extended"
 PATTERN='[[:digit:]]+.[[:digit:]]+.[[:digit:]]+.tex'
 TEXFLAGS="-file-line-error -interaction nonstopmode -shell-escape"
 DIAGNOSE=TRUE
 
 #=========================================
+SCRIPTNAME=$0
+
+print_help() {
+	disp_opts -h -n 30 $SCRIPTNAME 2>/dev/null
+}
 expand_macros() { #file 
 	sed -i -e 's/^x$/\\begin{center} *\\hspace{3cm}*\\hspace{3cm}*\\end{center}/g' $1
 }
@@ -32,8 +57,7 @@ compile() # /full/path/to/file
 	file=$(basename $1 $(ext $1))
 	dir=$(dirname $1)
 	cd $dir
-	if [[ $DIAGNOSE ]]
-	then
+	if [[ $DIAGNOSE ]]; then
 		pdflatex $TEXFLAGS $file 
 		bibtex -terse $file
 		pdflatex $TEXFLAGS $file 
@@ -51,7 +75,7 @@ compile() # /full/path/to/file
 files_from_year() # year
 {
 	year=$1
-	find $ROOT -regextype $REGEX -regex ".*/$year/.*/$PATTERN" | sort -d
+	find $JOURNAL_DIR -regextype $REGEX -regex ".*/$year/.*/$PATTERN" | sort -d
 }
 
 filter_year_month() # $1=year $2=month
@@ -61,20 +85,36 @@ filter_year_month() # $1=year $2=month
 }
 
 #=========================================
-if (($# == 0))
-then
+if (($# == 0)); then
 	year=`date +%Y`
 	month=`date +%m`
 	day=`date +%d`
-	dir=$ROOT/$year/$month
+	dir=$JOURNAL_DIR/$year/$month
 	file=$dir/$year.$month.$day.tex
-	if [ ! -d $dir ]
-	then
+	if [ ! -d $dir ]; then
 		mkdir -p $dir
 	fi
 	$EDITOR $file
 	exit
 fi
+
+# if given parameters, parse and compile
+optstring="h"
+while getopts "$optstring" opt; do
+	case "$opt" in
+		h)
+			print_help 
+			exit 1
+			;;
+		:)
+			error "-$opt requires argument" 
+			;; 
+		?)
+			error invalid option
+			;; 
+	esac
+done
+shift $((OPTIND - 1))
 
 year=`date +%Y`
 month=''
@@ -86,16 +126,14 @@ while (($# > 0)); do
 	#check for years with 4 numbers: 2012
 	if egrep -wq [0-9]{4} <<< "$1"; then
 		year=$1
-		if egrep -wq [0-9]{02} <<< "$2"
-		then
+		if egrep -wq [0-9]{02} <<< "$2"; then
 			year_files=$(files_from_year $year)
 		else
 			tot_files="$tot_files $(files_from_year $year)"
 		fi
 
 	# match months with 2 numbers: 02
-	elif echo "$1" | egrep -wq [0-9]{2}
-	then
+	elif echo "$1" | egrep -wq [0-9]{2}; then
 		month=$1
 		tot_files="$tot_files $(echo $year_files | tr ' ' '\n' | egrep "/$year/$month/")"
 	fi
@@ -103,8 +141,7 @@ while (($# > 0)); do
 	shift
 done
 
-if [ -f "$HEADER" ]
-then
+if [ -f "$HEADER" ]; then
 	cat $HEADER > $FOUT
 fi
 
@@ -116,8 +153,7 @@ done
 
 expand_macros $FOUT
 
-if [ -f "$FOOTER" ]
-then
+if [ -f "$FOOTER" ]; then
 	cat $FOOTER >> $FOUT
 fi
 

@@ -1,8 +1,22 @@
 #!/bin/bash
+#
+# mp2pdf [file1.mp file2.mp ...] 
+#
+# Run mptopdf on files to produce:
+#	file1.pdf file2.pdf ... *.pdf
+#
+# Just a quick fix to avoid having file1-0.mp, etc.
+#
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Fri Feb  6 13:47:04 2015
+# Last Modified: Fri Feb  6 13:50:09 2015
+# =================================================
 
 if (($# == 0))
 then
-	echo "usage: $0 f1 ... fn"
+	disp_opts $0 -h -n 15 2>/dev/null
 	exit
 fi
 

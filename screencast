@@ -4,11 +4,15 @@
 # 1. use scrot to take slices of images of a window
 # 2. convert the images into a single gif
 #
+# There are better ways to do this; see ttygif. I wrote it
+# more for fun than anything else. It will work fine for
+# small gifs.
+#
 # =================================================
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Wed Jan 21 12:40:09 2015
-# Last Modified: Thu 22 Jan 2015 06:17:33 PM EST
+# Last Modified: Fri Feb  6 14:20:11 2015
 # =================================================
 
 whole_screen=""
@@ -138,6 +142,7 @@ shift $((OPTIND - 1))
 
 if [ $# -eq 0 ]; then
 	error "output file not specified."
+	disp_opts -h -n 30 $0 2>/dev/null
 	exit 1;
 fi
 

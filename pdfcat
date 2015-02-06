@@ -4,6 +4,12 @@
 # 
 # Concatenate pdf files into a single file with gs
 # 
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Fri Feb  6 14:07:35 2015
+# Last Modified: Fri Feb  6 14:07:38 2015
+# =================================================
 
 SCRIPT_NAME=$(basename $0)
 msg () {
