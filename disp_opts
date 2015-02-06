@@ -72,14 +72,18 @@ cat_getopts_block() {
 	catsub -1 "$line1" -2 "$line2" "$file"
 }
 
+sed_print_opt() {
+	cat > $sed_script <<EOF
+s/^[[:space:]]*([[:alnum:]]+)\).*/-@\1/
+/^--$/d
+s/[[:space:]]([[:alnum:]_]+)=[\"\']*.OPTARG[\"\']*/<\1>/
+# s/^[[:space:]]*([[:alnum:]_]+)=\"*\$OPTARG\"*[[:space:]]*/\1/
+EOF
+}
+
 print_each_opt() {
 	grep -E -A1 -- "^[[:space:]]*[^:?])[[:space:]]*" \
-		| sed -r -f <( cat <<EOF
-			s/^[[:space:]]*([[:alnum:]]+)\).*/-@\1/
-			/^--$/d
-			s/[[:space:]]([[:alnum:]_]+)=[\"\']*.OPTARG[\"\']*/<\1>/
-			# s/^[[:space:]]*([[:alnum:]_]+)=\"*\$OPTARG\"*[[:space:]]*/\1/
-EOF) \
+		| sed -r -f <(sed_print_opt) \
 		| tr '\n' ' ' \
 		| tr '-' '\n' \
 		| tr '@' '-'
@@ -100,23 +104,27 @@ print_opts() {
 	return 0
 }
 
+sed_print_header(){
+	cat <<EOF 
+/^#!\/bin\/.*/d
+/^[^#]/d
+s/^#(.*)/\1/
+/^[[:space:]]*[Aa]uthor: .*/d
+/^[[:space:]]*[Ll]icense: .*/d
+/^[[:space:]]*[Cc]reation [Dd]ate: .*/d
+/^[[:space:]]*[Ll]ast [mM]odified: .*/d
+# /^[[:space:]]==*/d
+s/\t/  /g
+EOF
+}
+
 print_header() {
 	if [ -z "$num_header_lines" ]; then
 		num_header_lines=$NUM_HEADER_LINES
 	fi
 
 	head -n "$num_header_lines" "$file" \
-		| sed -r -f <( cat <<EOF 
-			/^#!\/bin\/.*/d
-			/^[^#]/d
-			s/^#(.*)/\1/
-			/^[[:space:]]*[Aa]uthor: .*/d
-			/^[[:space:]]*[Ll]icense: .*/d
-			/^[[:space:]]*[Cc]reation [Dd]ate: .*/d
-			/^[[:space:]]*[Ll]ast [mM]odified: .*/d
-			# /^[[:space:]]==*/d
-			s/\t/  /g
-EOF)
+		| sed -r -f <(sed_print_header)
 }
 
 optstring="hn:"
