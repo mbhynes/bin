@@ -2,8 +2,11 @@
 # 
 # note - an automated journaling script
 #
-# Running note without arguments creates a file:
+# note [-L -d -o -H -F -h] [ [year1 [month1 month2 ...] ] year2 ...]
+#
+# Running note without arguments creates the file:
 # $JOURNAL_DIR/year/month/year.month.day.tex
+# and runs $EDITOR on this file, or vim by default.
 #
 # note [year1 year2 ...] compiles all of the entries from
 # those years into a pdf file.
@@ -11,11 +14,16 @@
 # note [year1 [month1 month2 ...] ] ... compiles just those
 # months from the preceding year
 # 
-# The header and footer for the output pdf are specified in
+# The header and footer for the output pdf are (default) specified in
 # this script by:
-# FOUT=$JOURNAL_DIR/out.tex
-# HEADER=$JOURNAL_DIR/header.tex
-# FOOTER=$JOURNAL_DIR/append.tex
+#		JOURNAL_DIR=~/journal
+#		FOUT=$JOURNAL_DIR/out.tex
+#		HEADER=$JOURNAL_DIR/header.tex
+#		FOOTER=$JOURNAL_DIR/append.tex
+#
+# To compile all the entries with pdflatex, specify -L, and
+# provide years/months.
+#
 #
 # =================================================
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
@@ -24,32 +32,54 @@
 # Last Modified: Fri Feb  6 14:00:48 2015
 # =================================================
 
-JOURNAL_DIR=~/journal
-FOUT=$JOURNAL_DIR/out.tex
-HEADER=$JOURNAL_DIR/header.tex
-FOOTER=$JOURNAL_DIR/append.tex
+JOURNAL_DIR=""
+FOUT=""
+HEADER=""
+FOOTER=""
+VERBOSE_FLAG=""
+RUN_PDFLATEX_FLAG=""
 REGEX="posix-extended"
 PATTERN='[[:digit:]]+.[[:digit:]]+.[[:digit:]]+.tex'
 TEXFLAGS="-file-line-error -interaction nonstopmode -shell-escape"
-DIAGNOSE=TRUE
+
+SCRIPT_FULLNAME=$0
+SCRIPT_NAME=$(basename $0)
+msg () {
+	echo "$SCRIPT_NAME: $@" 1>&2
+}
+warn () {
+	msg WARNING: $@
+}
+error () {
+	msg ERROR: $@
+}
 
 #=========================================
-SCRIPTNAME=$0
-
 print_help() {
-	disp_opts -h -n 30 $SCRIPTNAME 2>/dev/null
+	disp_opts -h -n 30 $SCRIPT_FULLNAME 2>/dev/null
 }
-expand_macros() { #file 
-	sed -i -e 's/^x$/\\begin{center} *\\hspace{3cm}*\\hspace{3cm}*\\end{center}/g' $1
+
+expand_macros()  #file 
+{
+	_sep=3cm
+	_space="\\\\hspace{$_sep}"
+	_dots="\*$_space\*$_space\*$_space"
+	# sed -i -e 's/^x$/\\begin{center} *\\hspace{3cm}*\\hspace{3cm}*\\end{center}/g' $1
+	sed -i -f - $1 <<EOF_SED 
+s/^x$/\\\\begin{center}$_dots\\\\end{center}/g 
+EOF_SED
 }
 
 section_string() { #string 
 	echo "\\section*{$1}"
 }
 
-entry_name() { #file
-	file=$1
-	echo $file | sed -r 's/.*([[:digit:]]{4}\.[[:digit:]]{2}\.[[:digit:]]{2})\.tex/\1/'
+print_entry_name() { 
+	basename "$1" .tex
+}
+
+cat_uncommented_lines() {
+	sed -r -e '/[[:space:]]*%.*/d;' $1 >> $FOUT
 }
 
 compile() # /full/path/to/file
@@ -57,15 +87,15 @@ compile() # /full/path/to/file
 	file=$(basename $1 $(ext $1))
 	dir=$(dirname $1)
 	cd $dir
-	if [[ $DIAGNOSE ]]; then
+	if [ -n "$VERBOSE_FLAG" ]; then
 		pdflatex $TEXFLAGS $file 
-		bibtex -terse $file
 		pdflatex $TEXFLAGS $file 
+		[ -n "$BIBTEX_FLAG"] && bibtex -terse $file
 		pdflatex $TEXFLAGS $file 
 	else
-		pdflatex $TEXFLAGS $file 1>/dev/null 2>&1
-		# bibtex -terse $file
-		# pdflatex $TEXFLAGS $file 2>&1 1>/dev/null
+		pdflatex $TEXFLAGS $file 2>&1 1>/dev/null
+		pdflatex $TEXFLAGS $file 2>&1 1>/dev/null
+		[ -n "$BIBTEX_FLAG"] && bibtex -terse $file
 		pdflatex $TEXFLAGS $file 2>&1 1>/dev/null
 	fi
 	rm *.{aux,log,out}
@@ -75,33 +105,30 @@ compile() # /full/path/to/file
 files_from_year() # year
 {
 	year=$1
-	find $JOURNAL_DIR -regextype $REGEX -regex ".*/$year/.*/$PATTERN" | sort -d
+	find $JOURNAL_DIR -regextype $REGEX -regex ".*/$year/.*/$PATTERN" \
+		| sort -d
 }
 
-filter_year_month() # $1=year $2=month
-{
-	year=$1
-	month=$2
-}
-
-#=========================================
-if (($# == 0)); then
-	year=`date +%Y`
-	month=`date +%m`
-	day=`date +%d`
-	dir=$JOURNAL_DIR/$year/$month
-	file=$dir/$year.$month.$day.tex
-	if [ ! -d $dir ]; then
-		mkdir -p $dir
-	fi
-	$EDITOR $file
-	exit
-fi
 
 # if given parameters, parse and compile
-optstring="h"
+optstring="Ld:o:H:F:h"
 while getopts "$optstring" opt; do
 	case "$opt" in
+		L)
+			RUN_PDFLATEX_FLAG="true"
+			;;
+		d)
+			JOURNAL_DIR="$OPTARG"
+			;;
+		o)
+			FOUT="$OPTARG"
+			;;
+		H)
+			HEADER="$OPTARG"
+			;;
+		F)
+			FOOTER="$OPTARG"
+			;;
 		h)
 			print_help 
 			exit 1
@@ -115,6 +142,48 @@ while getopts "$optstring" opt; do
 	esac
 done
 shift $((OPTIND - 1))
+
+if [ -z "$JOURNAL_DIR" ]; then
+	JOURNAL_DIR=~/journal
+fi
+
+if [ ! -d "$JOURNAL_DIR" ]; then
+	error "$JOURNAL_DIR is not a valid directory; exiting"
+	exit 1
+fi
+
+if [ -z "$FOUT" ]; then
+	FOUT=$JOURNAL_DIR/out.tex
+fi
+
+if [ -z "$HEADER" ]; then
+	HEADER=$JOURNAL_DIR/header.tex
+fi
+
+if [ -z "$FOOTER" ]; then
+	FOOTER=$JOURNAL_DIR/append.tex
+fi
+
+# write new entry, if no years or months specified
+if (($# == 0)); then
+	year=`date +%Y`
+	month=`date +%m`
+	day=`date +%d`
+	dir=$JOURNAL_DIR/$year/$month
+	newfile=$dir/$year.$month.$day.tex
+
+	if [ ! -d $dir ]; then
+		mkdir -p $dir
+	fi
+
+	if [ -n "$EDITOR" ]; then
+		$EDITOR $newfile
+	else
+		vim $newfile
+	fi
+
+	exit
+fi
 
 year=`date +%Y`
 month=''
@@ -141,20 +210,23 @@ while (($# > 0)); do
 	shift
 done
 
-if [ -f "$HEADER" ]; then
+if [ -r "$HEADER" ]; then
 	cat $HEADER > $FOUT
+else
+	warn "header=$HEADER is not readable"
 fi
 
-for f in $(echo $tot_files |tr ' ' '\n' | sort -ud)
-do
-	echo $(section_string $(entry_name $f)) >> $FOUT
-	cat $f >> $FOUT
+for file in $(echo $tot_files |tr ' ' '\n' | sort -ud); do
+	section_string $(print_entry_name $file) >> $FOUT
+	cat_uncommented_lines $file >> $FOUT
 done 
 
 expand_macros $FOUT
 
 if [ -f "$FOOTER" ]; then
 	cat $FOOTER >> $FOUT
+else
+	warn "footer=$FOOTER is not readable"
 fi
 
-compile $FOUT
+[ -n "$RUN_PDFLATEX_FLAG" ] && compile $FOUT
