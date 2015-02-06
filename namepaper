@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# namepaper [-p -b] file.bib file2.bib namepaper -c [-p -b]
+# namepaper [-p] [-b] [-c] [-d <delim_string>] file.bib file2.bib 
 #
 # Print the a unix filename for a paper using the specified bibliographic entry
 # Alternatively, print the unix filename for a bibtex entry using the specified
@@ -13,11 +13,16 @@
 #
 # Stupid filename characters; ie <' " @  $ % ( ) [ ] { } ? _ & . ,> are
 # deleted. Duh.
+#
+# For -p[rint_paper_name] flat, -d <delim_string> will use
+# delim_string in the filename; the default is "__", giving:
+# author__papertitle__year.pdf
+#
 # =================================================
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Tue 03 Feb 2015 02:41:11 PM EST
-# Last Modified: Tue 03 Feb 2015 04:07:39 PM EST
+# Last Modified: Fri Feb  6 11:19:00 2015
 # =================================================
 
 MIN_WORD_LEN=4
@@ -164,7 +169,7 @@ if [ -n "$use_clipboard" ] && ((nfiles == 0)); then
 	exit 0
 
 elif ((nfiles == 0)); then
-	disp_opts -n 20 -h $0 2>/dev/null
+	disp_opts -n 30 -h $0 2>/dev/null
 	exit 1
 fi
 

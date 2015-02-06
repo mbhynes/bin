@@ -1,0 +1,29 @@
+#!/bin/bash
+#
+# showram
+# Show the available ram for spectrwm with format:
+# 11.27% of 3.83 Gb
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Fri Feb  6 01:14:36 2015
+# Last Modified: Fri Feb  6 11:33:17 2015
+# =================================================
+
+NUM_DECIMALS=2
+
+get_ram_entry() 
+{
+	grep -E -r "$1:[[:space:]]*" /proc/meminfo \
+		| tr -s " " \
+		| cut -d " " -f2
+}
+
+mem_tot=$(get_ram_entry "MemTotal")
+mem_avail=$(get_ram_entry "MemAvailable")
+mem_free=$(get_ram_entry "MemAvailable")
+
+percent_used=$(bc <<< "scale=$NUM_DECIMALS; 100 * ($mem_tot - $mem_free) / $mem_tot")
+gb_total=$(bc <<< "scale=$NUM_DECIMALS; $mem_tot / 1024 / 1024 ")
+
+echo "$percent_used% of $gb_total Gb"

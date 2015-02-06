@@ -109,10 +109,10 @@ print_header() {
 			/^#!\/bin\/.*/d
 			/^[^#]/d
 			s/^#(.*)/\1/
-			/^[[:space:]]*[Aa]uthor.*/d
-			/^[[:space:]]*[Ll]icense*/d
-			/^[[:space:]]*[Cc]reation*/d
-			/^[[:space:]]*[Ll]ast*/d
+			/^[[:space:]]*[Aa]uthor: .*/d
+			/^[[:space:]]*[Ll]icense: .*/d
+			/^[[:space:]]*[Cc]reation [Dd]ate: .*/d
+			/^[[:space:]]*[Ll]ast [mM]odified: .*/d
 			# /^[[:space:]]==*/d
 			s/\t/  /g
 EOF)

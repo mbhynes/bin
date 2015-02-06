@@ -1,0 +1,16 @@
+#!/bin/bash
+#
+# baraction
+# baraction script for spectrwm bar
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Fri Feb  6 01:41:40 2015
+# Last Modified: Fri Feb  6 11:30:07 2015
+# =================================================
+
+i3status -c ~/.i3status 2>/dev/null | while :
+do
+	read line
+	sed -r -e 's/\|/\t\t/g' <<< "ram: $(showram) | $line"  
+done

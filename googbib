@@ -1,20 +1,52 @@
 #!/bin/bash
 #
-# /home/mike/bin/googbib
+# googbib [-c] [-p <paper>]
+# 
+# Copy bibtex information from clipboard into a bibtex entry
+# in $BIB_DIR.
+#
+# If the bibtex entry is taken from google scholar; ie,
+# @article{hartigan1972direct,
+#   title={Direct clustering of a data matrix},
+#   author={Hartigan, John A},
+#   journal={Journal of the american statistical association},
+#   volume={67},
+#   number={337},
+#   pages={123--129},
+#   year={1972},
+#   publisher={Taylor \& Francis Group}
+# }
+# then it will be saved as $BIB_DIR/hartigan1972direct.bib
+#
+# If the -c[lobber_flag] is given, then the bibentry will be
+# overwrittten if it exists.
+#
+# If -p <file.pdf> is given, then that file will be copied
+# to:
+# $PAPER_DIR/author__title__year.pdf
+# using $(namepaper -p)
+#
 # =================================================
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Mon Feb  2 11:02:19 2015
-# Last Modified: Mon Feb  2 14:27:38 2015
+# Last Modified: Fri Feb  6 11:11:41 2015
 # =================================================
 
-DEST=~/bib
+# directories in which to store bib files and journal papers
+BIB_DIR=~/bib
+PAPER_DIR=~/papers
+
 SCRIPT_NAME=$(basename $0)
 clobber_flag=""
+paper_to_rename=""
 
-optstring="c"
+optstring="cp:"
 while getopts "$optstring" opt; do
 	case "$opt" in
+		p)
+			paper_to_rename="$OPTARG"
+			;;
 		c)
 			clobber_flag="true"
 			;;
@@ -48,7 +80,7 @@ if [ -z "$name" ]; then
 	exit 1
 fi
 
-file="$DEST/$name.bib"
+file="$BIB_DIR/$name.bib"
 if [ ! -f "$file" ]; then
 	msg "Writing entry to $file"
 	xclip -o > "$file"
@@ -56,7 +88,6 @@ else
 	warn "$file already exists" 
 	if diff --normal "$file" <(xclip -o) > /dev/null; then
 		warn "$file is identical with the clipboard buffer" 
-		exit 0
 	else
 		warn "$file differs from clipboard buffer:" 
 		diff -y "$file" <(xclip -o) 1>&2
@@ -66,6 +97,11 @@ else
 		warn "Clobbering $file"
 		xclip -o >| "$file"
 	fi
-	
+fi
+
+if [ -n "$paper_to_rename" ]; then
+	new_name=$(namepaper -p "$file")
+	msg "Copying $paper_to_rename to $PAPER_DIR/$new_name"
+	cp "$paper_to_rename" "$PAPER_DIR/$new_name"
 fi
 
