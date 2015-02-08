@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# googbib [-c] [-p <paper>]
+# googbib [-h] [-c] [-p <paper>]
 # 
 # Copy bibtex information from clipboard into a bibtex entry
 # in $BIB_DIR.
@@ -37,13 +37,33 @@
 BIB_DIR=~/bib
 PAPER_DIR=~/papers
 
+SCRIPT_PATHNAME=$0
 SCRIPT_NAME=$(basename $0)
 clobber_flag=""
 paper_to_rename=""
 
-optstring="cp:"
+
+display_help() {
+	disp_opts -n 34 -h $SCRIPT_PATHNAME 2>/dev/null
+	exit 1
+}
+msg () {
+	echo "$SCRIPT_NAME: $@" 1>&2
+}
+warn () {
+	msg WARNING: $@
+}
+error () {
+	msg ERROR: $@
+}
+
+
+optstring="hcp:"
 while getopts "$optstring" opt; do
 	case "$opt" in
+		h)
+			display_help
+			;;
 		p)
 			paper_to_rename="$OPTARG"
 			;;
@@ -59,16 +79,6 @@ while getopts "$optstring" opt; do
 	esac
 done
 shift $((OPTIND - 1))
-
-msg () {
-	echo "$SCRIPT_NAME: $@" 1>&2
-}
-warn () {
-	msg WARNING: $@
-}
-error () {
-	msg ERROR: $@
-}
 
 name=$(xclip -o \
 	| grep '@' \

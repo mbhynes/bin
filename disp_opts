@@ -113,7 +113,7 @@ s/^#(.*)/\1/
 /^[[:space:]]*[Ll]icense: .*/d
 /^[[:space:]]*[Cc]reation [Dd]ate: .*/d
 /^[[:space:]]*[Ll]ast [mM]odified: .*/d
-# /^[[:space:]]==*/d
+/^[[:space:]]*==+$/d
 s/\t/  /g
 EOF
 }
