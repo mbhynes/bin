@@ -11,8 +11,8 @@
 # Tested to work with google scholar's bibtex export, since theirs is the
 # cleanest.
 #
-# Stupid filename characters; ie <' " @  $ % ( ) [ ] { } ? _ & . ,> are
-# deleted. Duh.
+# All punction characters in the regexp class [[:punct:]]
+# are deleted from the bibtex fields when printed.
 #
 # For -p[rint_paper_name] flat, -d <delim_string> will use
 # delim_string in the filename; the default is "__", giving:
@@ -69,16 +69,16 @@ print_bib_entry() {
 	_sed_entry=$_space"$(get_iname_sedstr $1)"$_space"="$_space$_brace
 	
 	grep -i "^$_entry" \
-		| sed -r -e "s/^$_sed_entry(.*)$_space$_brace$_space,?$/\1/"
+		| sed -r -e \
+		"s/^$_sed_entry(.*)$_space$_brace$_space,?$/\1/; s/[[:punct:]]//g"
 }
 
 print_title() {
-	chars_to_delete="'\"\@\\\$\%\(\)\[\]\{\}\?\_\&\.\,\<\>"
 	chars_to_underscore="\:\;\-\ "
+
 	print_bib_entry "title" \
-		| tr -d "$chars_to_delete" \
 		| tr 'A-Z' 'a-z' \
-		| tr -s "$chars_to_underscore" '_'
+		| tr -s "$chars_to_underscore" '_' 
 }
 
 print_year() {
@@ -130,7 +130,7 @@ print_bibname() { #tmpfile
 	fi
 }
 
-optstring="cdpb"
+optstring="cd:pb"
 while getopts "$optstring" opt; do
 	case "$opt" in
 		p)
