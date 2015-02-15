@@ -1,0 +1,63 @@
+#!/bin/sh
+#
+# screenshot [-F] [-d dir]
+#
+# Take a single screenshot using scrot of either
+# the selected window or the [-F] full screen. The
+# screenshot will be saved either to $HOME or to
+# -d dir.
+#
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Fri Feb 13 10:41:42 2015
+# Last Modified: Sat Feb 14 22:01:46 2015
+# =================================================
+
+screenshot_dir=""
+use_fullscreen=""
+
+SCRIPT_NAME=$(basename $0)
+msg () {
+	echo "$SCRIPT_NAME: $@" 1>&2
+}
+warn () {
+	msg WARNING: $@
+}
+error () {
+	msg ERROR: $@
+}
+take_screenshot() 
+{
+	cmd=""
+	if [ -n "$screenshot_dir" ]; then
+		cmd="mv \$f $screenshot_dir"
+	fi
+
+	if [ -n "$use_fullscreen" ]; then
+		scrot -m -e "$cmd"
+	else
+		scrot --focused -e "$cmd"
+	fi
+}
+
+optstring="d:F"
+while getopts "$optstring" opt; do
+	case "$opt" in
+		F)
+			use_fullscreen="true"
+			;;
+		d)
+			screenshot_dir="$OPTARG"
+			;;
+		:)
+			error "-$opt requires argument" 
+			;; 
+		?)
+			error invalid option
+			;; 
+	esac
+done
+shift $((OPTIND - 1))
+
+take_screenshot 

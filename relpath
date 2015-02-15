@@ -1,0 +1,143 @@
+#!/bin/bash
+#
+# relpath [-d dir] [f1 f2 f3 ...]
+# 
+# Get the relative pathname of input files to specified directory.
+#
+# The input dir and [f1 f2 ...] may be relative paths (within reason).
+# Strings like "../../test" and "./test" are fine, but don't get
+# crazy.
+#
+# If [-d dir] is omitted, [-d $PWD] is assumed.
+#
+# Example:
+# >> relpath -d /home/user1/dogs /home/user2/cats
+# ../../user2/cats/
+#
+# Internally, this separates strings using '/', and then runs diff
+# to compare the resulting strings.
+#
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Sat Feb 14 14:04:50 2015
+# Last Modified: Sat Feb 14 20:12:59 2015
+# =================================================
+
+relative_dir=""
+
+SCRIPT_NAME=$(basename $0)
+msg () {
+	echo "$SCRIPT_NAME: $@" 1>&2
+}
+warn () {
+	msg WARNING: $@
+}
+error () {
+	msg ERROR: $@
+}
+
+# recursively expand leading ../ in pathnames
+expand_reldir() {
+	str="$1"
+	path="$PWD"
+	# echo $str $path
+	while grep -q '^\.\.\/' <<< "$str" ; do
+		str=${str##../}
+		path=$(dirname $path)
+		# echo "$path"
+		# echo $str
+	done
+	echo $path/${str%%/}
+}
+
+print_fullpath() {
+	path="$1"
+	if grep -q '^\.\/' <<< "$path"; then
+		path="$PWD/${path:2:100}"
+	fi
+
+	if grep -q '^\.\.\/' <<< "$path"; then
+		expand_reldir $path
+	else
+		echo $path
+	fi
+}
+
+# print the subdirs of pathname line by line
+dirname_by_line() {
+	if [[ "$1" == '/' ]]; then
+		echo '/'
+	else
+		tr '/' '\n'  <<< "$1"
+	fi
+}
+
+# sed script to convert results of diff into a pathname
+sed_convert_script() {
+	cat <<EOF
+1d
+/^$/d
+/^<[[:space:]]+$/d
+s/^< ([^ ]+)/\.\.\//
+s/^> (.*)/\1\//
+/^---/d
+/^[[:digit:]]+,[[:digit:]]*.*/d
+\$s/^(.*)\//\1/
+EOF
+}
+
+convert_to_relname() {
+	sed -r -f <(sed_convert_script) 
+}
+
+print_reldir() {
+	diff --suppress-common-lines \
+		<(dirname_by_line "$relative_dir") \
+		<(dirname_by_line "$@") \
+		| convert_to_relname \
+		| tr -d '\n'
+}
+
+optstring="d:"
+while getopts "$optstring" opt; do
+	case "$opt" in
+		d)
+			relative_dir="$OPTARG"
+			;;
+		:)
+			error "-$opt requires argument" 
+			;; 
+		?)
+			error invalid option
+			;; 
+	esac
+done
+shift $((OPTIND - 1))
+
+if [ -z "$relative_dir" ] || [[ "$relative_dir" == '.' ]]; then
+	relative_dir="$PWD"
+fi
+
+if [[ "$relative_dir" == '..' ]]; then
+	relative_dir="$(dirname $PWD)"
+fi
+
+if [[ "$relative_dir" == / ]]; then
+	warn "/ specified as relative dir."
+	for f in "$@"; do
+		print_fullpath $f
+	done
+	exit 0
+fi
+
+# expand any relative pathnames in relative_dir
+relative_dir=$(print_fullpath $relative_dir)
+
+for f in "$@"; do
+	pathname=$(print_fullpath "$f")
+	print_reldir "$pathname"
+	echo
+done
+
+exit 0
