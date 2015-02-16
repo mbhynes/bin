@@ -16,6 +16,12 @@
 #
 # Internally, this separates strings using '/', and then runs diff
 # to compare the resulting strings.
+# 
+# If realpath is installed on the system, alternatively, use
+# >> realpath --relative-to=dir [f1 f2 ...]
+#
+# This isn't installed on some of the systems I use, so this
+# is just a naive replacement for it.
 #
 # =================================================
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
@@ -26,6 +32,7 @@
 
 relative_dir=""
 
+SCRIPT_PATHNAME=$0
 SCRIPT_NAME=$(basename $0)
 msg () {
 	echo "$SCRIPT_NAME: $@" 1>&2
@@ -35,6 +42,10 @@ warn () {
 }
 error () {
 	msg ERROR: $@
+}
+
+print_help() {
+	disp_opts -h -n 30 $SCRIPT_PATHNAME 2>/dev/null
 }
 
 # recursively expand leading ../ in pathnames
@@ -99,9 +110,12 @@ print_reldir() {
 		| tr -d '\n'
 }
 
-optstring="d:"
+optstring="hd:"
 while getopts "$optstring" opt; do
 	case "$opt" in
+		h)
+			print_help
+			;;
 		d)
 			relative_dir="$OPTARG"
 			;;
