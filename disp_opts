@@ -73,7 +73,7 @@ cat_getopts_block() {
 }
 
 sed_print_opt() {
-	cat > $sed_script <<EOF
+	cat <<EOF
 s/^[[:space:]]*([[:alnum:]]+)\).*/-@\1/
 /^--$/d
 s/[[:space:]]([[:alnum:]_]+)=[\"\']*.OPTARG[\"\']*/<\1>/
