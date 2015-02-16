@@ -48,9 +48,6 @@ error () {
 get_line_first_match() {
 	pattern="$1"
 	file="$2"
-	msg $pattern in $file
-
-	grep -En -m 1 -- "$pattern" "$file" 1>&2
 	grep -En -m 1 -- "$pattern" "$file" \
 		| cut -d ":" -f 1
 }
@@ -58,9 +55,8 @@ get_line_first_match() {
 # print the getopts portion of the given file
 cat_getopts_block() { 
 	file="$1"
-	line1=$(get_line_first_match "^[[:space:]]*while getopts.*; do[[:space:]]*$" "$file")
-	line2=$(get_line_first_match "^[[:space:]]*:)[[:space:]]*$" "$file")
-	msg $line1,$line2
+	line1=$(get_line_first_match '^[[:space:]]*while getopts.*; do[[:space:]]*$' "$file")
+	line2=$(get_line_first_match '^[[:space:]]*:\)[[:space:]]*$' "$file")
 
 	if [ -z "$line1" -o -z "$line2" ]; then
 		error "no getopts block found in $file:"
@@ -82,7 +78,8 @@ EOF
 }
 
 print_each_opt() {
-	grep -E -A1 -- "^[[:space:]]*[^:?])[[:space:]]*" \
+	# grep -E -A1 -- '^[[:space:]]*[^:?]\)[[:space:]]*'  
+	grep -E -A1 -- "^[[:space:]]*[^:?]\)[[:space:]]*" \
 		| sed -r -f <(sed_print_opt) \
 		| tr '\n' ' ' \
 		| tr '-' '\n' \
@@ -147,7 +144,7 @@ done
 shift $((OPTIND - 1))
 
 if [ $# -eq 0 ]; then
-	disp_opts -n 30 -h $0 2>/dev/null
+	disp_opts -n 30 -h $0 
 	exit 1
 fi
 
