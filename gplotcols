@@ -4,7 +4,7 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Mon Jan 26 13:33:27 2015
-# Last Modified: Mon Feb  2 20:12:09 2015
+# Last Modified: Tue 17 Feb 2015 03:34:25 PM EST
 #=================================================
 
 
@@ -56,6 +56,7 @@ set format '%g'
 #set mxtics 10    
 
 set datafile missing "NaN"
+set datafile separator "$delimiter"
 
 EOF
 }
@@ -68,9 +69,12 @@ if which gplot_vars 1>&2 2>/dev/null; then
 fi
 
 
-OPTSTRING=t:ex:y:L:h:o:P:T:f:s:w:
+OPTSTRING=t:ex:y:L:h:o:P:T:f:s:w:d:
 while getopts $OPTSTRING opt; do
 	case $opt in
+		d)
+			delimiter="$OPTARG"
+			;;
 		t)
 			timeformat="$OPTARG"
 			;;
@@ -127,13 +131,17 @@ if ((nfiles == 0)) || [ -z "$fout" ]; then
 	exit 1
 fi
 
-# check if variables are set; else set defaults
+if [ -z "$delimiter" ]; then
+	delimiter=" "
+	warn "-d delimiter unspecified; using \"$delimiter\""
+fi
+
 if [ -z "$linewidth" ]; then
-	linewidth=3
+	linewidth=2
 fi
 
 if [ -z "$size" ]; then
-	size="6,4"
+	size="5,3"
 fi
 
 if [ -z "$terminal" ] && [ -z "$header"]; then
@@ -141,7 +149,7 @@ if [ -z "$terminal" ] && [ -z "$header"]; then
 fi
 
 if [ -z "$font" ]; then
-	font="Courier,20,Bold" 
+	font="Times,16,Bold" 
 fi
 
 fnum=0
@@ -193,14 +201,13 @@ EOF
 	# plot files
 	# =============================================
 
-
-	ncols=$(head -n 1 $file | wc -w)
+	num_cols=$(ncols -d "$delimiter" "$file")
 
 	if [ "$errorbars" ]; then
-		klast=$((ncols-1))
+		klast=$((num_cols-1))
 		kvals=$(seq 2 2 $klast)
 	else
-		klast=$((ncols))
+		klast=$((num_cols))
 		kvals=$(seq 2 $klast)
 	fi
 
@@ -225,7 +232,7 @@ EOF
 	# =============================================
 	# first plot command; use filename, follow with comma and linebreak
 		if ((k == 2)) ;	then
-			if [ "$errorbars" ] && ((ncols > 2));	then
+			if [ "$errorbars" ] && ((num_cols > 2));	then
 				echo "plot '$file' using 1:$k:$((k+1)) title '$leg_entry' with errorbars $line, \\" >> $plot_script
 				echo "	'' using 1:$k notitle with lines ls $num, \\" >> $plot_script
 			else
@@ -236,7 +243,7 @@ EOF
 	# last plot command:
 	# 	no filename, no linebreak
 		elif ((k == klast)) ;	then
-			if [ "$errorbars" ] && ((ncols > 2));	then
+			if [ "$errorbars" ] && ((num_cols > 2));	then
 				echo "	'' using 1:$k:$((k+1)) title '$leg_entry' with errorbars $line, \\" >> $plot_script
 				echo "	'' using 1:$k notitle with lines ls $num" >> $plot_script
 			else
@@ -247,7 +254,7 @@ EOF
 	# middle plot commands
 	# 	no filename, comma + linebreak
 		else
-			if [ "$errorbars" ] && ((ncols > 2));	then
+			if [ "$errorbars" ] && ((num_cols > 2));	then
 				echo "	'' using 1:$k:$((k+1)) title '$leg_entry' with errorbars $line, \\" >> $plot_script
 				echo "	'' using 1:$k notitle with lines ls $num, \\" >> $plot_script
 			else

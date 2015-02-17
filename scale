@@ -1,0 +1,65 @@
+#!/usr/bin/octave -q
+# scale [-c cols] -a constant [- file1 file2 ...]
+#
+# Scale the cols of specified files (or stdin) by a constant.
+#
+#=====================================
+# ex: set filetype=octave:
+#=====================================
+
+#==================================================
+# SET OPTIONAL COMMAND-LINE ARGUMENTS
+#==================================================
+global OPT_VAR_NAMES = {"cols" "output_format" "display_help" "constant"}; 
+global OPT_VAR_FLAGS = {"c" "f" "h" "a"};
+global OPT_VAR_DEFAULTS = {"[]" "'%8.8f\t'" "false" "[]"};
+global OPT_FLAG_HASARGS = {"c" "f" "a"}; 
+
+parse_opts
+
+if help_flag_specified()
+	display_opts()
+	exit
+end
+
+if (length(OPTFILES) == 0)
+	OPTFILES={STDIN};
+end
+
+for k = 1 : length(OPTFILES)
+	fin = OPTFILES{k};
+	if strcmp(fin,STDIN)
+		out = read_mat_stdin();
+	else
+		out = load(fin);
+	end
+	[n,m] = size(out);
+
+	# check if cols is contained in [1:m]
+	ncols = numel(cols);
+	colspan = [1:m];
+	if !ncols || !(numel(intersect(cols,colspan)) == ncols)
+		cols = colspan;
+		ncols = numel(cols);
+	end
+
+	for j = 1 : ncols
+		# subtract a constant from column if specified
+		if (length(constant) == ncols)
+			out(:,cols(j)) = out(:,cols(j)) * constant(j);
+		else
+			log_warn(sprintf(
+				"-a const has length %d,  but -c cols has length %d; using a(1) = %f for all cols",  
+				length(constant),
+				ncols,
+				constant(1))
+			);
+			out(:,cols(j)) = out(:,cols(j)) * constant(1);
+		end
+	end
+
+	% print to stdout
+	output_str = [repmat(output_format,1,length(out(1,:)))];
+	fprintf(1, [output_str(1:end-1) "\n"],out');
+
+end

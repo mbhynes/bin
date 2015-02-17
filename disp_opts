@@ -68,9 +68,11 @@ cat_getopts_block() {
 	catsub -1 "$line1" -2 "$line2" "$file"
 }
 
+# convert each getop case x) into  %@x, assuming % and @ will be unique
+# characters for processing afterwards
 sed_print_opt() {
 	cat <<EOF
-s/^[[:space:]]*([[:alnum:]]+)\).*/-@\1/
+s/^[[:space:]]*([[:alnum:]]+)\).*/%@\1/
 /^--$/d
 s/[[:space:]]([[:alnum:]_]+)=[\"\']*.OPTARG[\"\']*/<\1>/
 # s/^[[:space:]]*([[:alnum:]_]+)=\"*\$OPTARG\"*[[:space:]]*/\1/
@@ -78,12 +80,10 @@ EOF
 }
 
 print_each_opt() {
-	# grep -E -A1 -- '^[[:space:]]*[^:?]\)[[:space:]]*'  
 	grep -E -A1 -- "^[[:space:]]*[^:?]\)[[:space:]]*" \
 		| sed -r -f <(sed_print_opt) \
-		| tr '\n' ' ' \
-		| tr '-' '\n' \
-		| tr '@' '-'
+		| tr '\n@' ' -' \
+		| tr '%' '\n'  
 	echo ""
 }
 

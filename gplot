@@ -4,7 +4,7 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Mon Jan 26 13:33:27 2015
-# Last Modified: Mon Jan 26 21:09:49 2015
+# Last Modified: Tue 17 Feb 2015 03:34:33 PM EST
 #=================================================
 
 # add character escapes to certain strings
@@ -63,15 +63,19 @@ set format '%g'
 #set mxtics 10    
 
 set datafile missing "NaN"
+set datafile separator "$delimiter"
 
 EOF
 }
 
 DEFAULT_TERM="postscript eps enhanced"
 
-OPTSTRING=t:ex:y:L:h:o:P:T:f:s:w:FX:Y:
+OPTSTRING=t:ex:y:L:h:o:P:T:f:s:w:FX:Y:d:
 while getopts $OPTSTRING opt; do
 	case $opt in
+		d)
+			delimiter="$OPTARG"
+			;;
 		t)
 			timeformat="$OPTARG"
 			;;
@@ -141,13 +145,18 @@ if [ -z "$fout" ]; then
 	exit 1
 fi
 
+if [ -z "$delimiter" ]; then
+	delimiter=" "
+	warn "-d delimiter unspecified; using \"$delimiter\""
+fi
+
 # check if variables are set; else set defaults
 if [ -z "$linewidth" ]; then
 	linewidth=2
 fi
 
 if [ -z "$terminal_size" ]; then
-	terminal_size="6,3"
+	terminal_size="5,3"
 fi
 
 if [ -z "$terminal" ] && [ -z "$header"]; then
@@ -155,7 +164,7 @@ if [ -z "$terminal" ] && [ -z "$header"]; then
 fi
 
 if [ -z "$font" ]; then
-	font="Courier,20,Bold" 
+	font="Times,16,Bold" 
 fi
 
 if [ -z "$xrange" ]; then
@@ -227,10 +236,10 @@ echo "set output '$fout'" >> $plot_script
 # =============================================
 k=0
 for file in "$@"; do
-	ncols=$(head -n 1 $file | wc -w)
+	num_cols=$(ncols -d "$delimiter" $file)
 
-	if ((ncols == 1)); then
-		echo "WARNING: $file contains only $ncols columns---skipping" 1>&2
+	if ((num_cols == 1)); then
+		echo "WARNING: $file contains only $num_cols columns---skipping" 1>&2
 		continue
 	fi
 
@@ -251,7 +260,7 @@ for file in "$@"; do
 # =============================================
 # check if only 1 file is given:
 	if (($# == 1)) ; then
-		if [ "$errorbars" ] && ((ncols > 2));	then
+		if [ "$errorbars" ] && ((num_cols > 2));	then
 			if [ "$filled" ];	then
 				echo "plot '$file' using 1:(\$2-\$3):(\$2+\$3) title '$leg_entry' with filledcurves \\" >> $plot_script
 			else
@@ -267,7 +276,7 @@ for file in "$@"; do
 # =============================================
 # first plot command; use filename, follow with comma and linebreak
 	if ((k == 0)) ;	then
-		if [ "$errorbars" ] && ((ncols > 2));	then
+		if [ "$errorbars" ] && ((num_cols > 2));	then
 			if [ "$filled" ];	then
 				echo "plot '$file' using 1:(\$2-\$3):(\$2+\$3) title '$leg_entry' with filledcurves, \\" >> $plot_script
 			else
@@ -282,7 +291,7 @@ for file in "$@"; do
 # last plot command:
 # 	no filename, no linebreak
 	elif ((k+1 == nfiles)) ;	then
-		if [ "$errorbars" ] && ((ncols > 2));	then
+		if [ "$errorbars" ] && ((num_cols > 2));	then
 			if [ "$filled" ];	then
 				echo "	'$file' using 1:(\$2-\$3):(\$2+\$3) title '$leg_entry' with filledcurves" >> $plot_script
 			else
@@ -297,7 +306,7 @@ for file in "$@"; do
 # middle plot commands
 # 	no filename, comma + linebreak
 	else
-		if [ "$errorbars" ] && ((ncols > 2));	then
+		if [ "$errorbars" ] && ((num_cols > 2));	then
 			if [ "$filled" ];	then
 				echo "	'$file' using 1:(\$2-\$3):(\$2+\$3) title '$leg_entry' with filledcurves, \\" >> $plot_script
 			else

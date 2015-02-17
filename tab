@@ -1,0 +1,111 @@
+#!/bin/bash
+#
+# tab
+#
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Tue 17 Feb 2015 11:05:54 AM EST
+# Last Modified: Tue 17 Feb 2015 01:01:52 PM EST
+# =================================================
+
+HLINE='\\\hline'
+COLSPEC='c'
+EOL='\\\\'
+header=""
+delim=""
+nlines=""
+colspec=""
+
+SCRIPT_NAME=$(basename $0)
+msg () {
+	echo "$SCRIPT_NAME: $@" 1>&2
+}
+warn () {
+	msg WARNING: $@
+}
+error () {
+	msg ERROR: $@
+}
+insert_lines() {
+	for k in $(seq 1 "$nlines"); do
+		echo "${HLINE:2:10}"
+	done
+}
+insert_header() {
+	cat <<EOF
+1i$header
+1i$HLINE
+EOF
+}
+table_script() {
+	cat <<EOF
+s/\&/\\&/g
+s/\#/\\#/g
+s/$delim/\&\t/g
+s/$/$EOL/
+s/\\\$/\\\\\$/
+EOF
+}
+begin_table() {
+	echo "\\begin{tabular}{$current_colspec}"
+}
+end_table() {
+	echo '\end{tabular}'
+}
+convert_to_tex() {
+	begin_table
+	insert_lines
+	sed -f <(insert_header) "$1" \
+		| sed -f <(table_script) 
+	insert_lines
+	end_table
+}
+default_colspec() {
+	num_cols=$(head -n 1 "$1" | grep -o "$delim" | wc -l)
+	yes "$COLSPEC" | head -n $((num_cols+1)) | tr -d '\n' 
+}
+
+optstring="h:d:n:c:"
+while getopts "$optstring" opt; do
+	case "$opt" in
+		h)
+			header="$OPTARG"
+			;;
+		d)
+			delim="$OPTARG"
+			;;
+		n)
+			nlines="$OPTARG"
+			;;
+		c)
+			colspec="$OPTARG"
+			;;
+		:)
+			error "-$opt requires argument" 
+			;; 
+		?)
+			error invalid option
+			;; 
+	esac
+done
+shift $((OPTIND - 1))
+
+if [ -z "$delim" ]; then
+	delim=","
+	msg "-d delim unspecified; using $delim"
+fi
+
+if [ -z "$nlines" ]; then
+	nlines=2
+	msg "-n nlines unspecified; using $nlines"
+fi
+
+for file in "$@"; do
+	if [ -z "$colspec" ]; then
+		current_colspec=$(default_colspec "$file")
+	else
+		current_colspec="$colspec"
+	fi
+	convert_to_tex "$file"
+done
