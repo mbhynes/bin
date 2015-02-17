@@ -1,5 +1,7 @@
-#!/usr/bin/octave -qf
+#!/usr/bin/octave -q
+# rmoffset [-c cols]
 # For m = matrix of size [N,M] remove m(1,k) for all -c [k1,k2,...]
+# If
 #
 #=====================================
 # ex: set filetype=octave:
@@ -8,22 +10,25 @@
 #==================================================
 # SET OPTIONAL COMMAND-LINE ARGUMENTS
 #==================================================
-global OPT_VAR_NAMES = {"cols" "output_format"}; 
-global OPT_VAR_FLAGS = {"c" "f"};
-global OPT_VAR_DEFAULTS = {"[]" "'%8.8f\t'"};
-global OPT_FLAG_HASARGS = {"c" "f"}; 
+global OPT_VAR_NAMES = {"cols" "output_format" "display_help" "constant"}; 
+global OPT_VAR_FLAGS = {"c" "f" "h" "a"};
+global OPT_VAR_DEFAULTS = {"[]" "'%8.8f\t'" "false" "[]"};
+global OPT_FLAG_HASARGS = {"c" "f" "a"}; 
 
 parse_opts
 
-dummy_file = ".read.stdin";
+if help_flag_specified()
+	display_opts()
+	exit
+end
 
 if (length(OPTFILES) == 0)
-	OPTFILES={".read.stdin"};
+	OPTFILES={STDIN};
 end
 
 for k = 1 : length(OPTFILES)
 	fin = OPTFILES{k};
-	if strcmp(fin,dummy_file)
+	if strcmp(fin,STDIN)
 		out = read_mat_stdin();
 	else
 		out = load(fin);
@@ -39,7 +44,21 @@ for k = 1 : length(OPTFILES)
 	end
 
 	for j = cols
-		out(:,j) = out(:,j) - out(1,j);
+		# subtract a constant from column if specified
+		if ~isempty(constant)
+			if (length(constant) == ncols)
+				out(:,j) = out(:,j) - constant(j);
+			else
+				log_warn(sprintf(
+					"-a const has length %d,  but -c cols has length %d",  
+					length(constant),
+					ncols)
+				);
+				out(:,j) = out(:,j) - constant(1);
+			end
+		else
+			out(:,j) = out(:,j) - out(1,j);
+		end
 	end
 
 	% print to stdout

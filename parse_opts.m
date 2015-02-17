@@ -38,7 +38,7 @@
 % Author: Michael B Hynes, mbhynes@uwaterloo.ca
 % License: GPL 3
 % Creation Date: Wed 21 Jan 2015 06:25:47 PM EST
-% Last Modified: Wed Jan 21 20:24:10 2015
+% Last Modified: Mon 16 Feb 2015 08:32:58 PM EST
 % =================================================
 
 global OPT_VAR_NAMES;
@@ -48,6 +48,7 @@ global OPT_FLAG_HASARGS;
 global OPTFLAGS;
 global OPTARGS;
 global OPTFILES;
+global STDIN='-';
 
 %==================================================
 % UTILITY FUNCTIONS 
@@ -87,6 +88,8 @@ function display_opts()
 	global OPT_VAR_DEFAULTS;
 	global OPT_FLAG_HASARGS;
 
+	write_stdout("");
+	write_stdout("Option flags:");
 	for k = 1:length(OPT_VAR_FLAGS)
 		v = OPT_VAR_FLAGS{k};
 		name = OPT_VAR_NAMES{k};
@@ -120,8 +123,14 @@ end
 
 %==================================================
 function bool = is_flag(str)
-	bool = (str(1) == '-');
+	bool = (str(1) == '-') && (length(str) > 1);
 end
+
+%==================================================
+function bool = is_stdin(str)
+	bool = (str(1) == '-') && (length(str) == 1);
+end
+
 
 %==================================================
 function bool = is_flag_expected(str)
@@ -179,7 +188,11 @@ function [flags args files] = get_opts(list)
 			arg_num++;
 
 		else
-			log_info(["Read non-flag argument: " param]);
+			if is_stdin(param)
+				log_info(["- specified on commandline; Reading from stdin."]);
+			else
+				log_info(["Read non-flag argument: " param]);
+			end
 
 			files{file_num} = list{k};
 			file_num++;

@@ -6,7 +6,7 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Mon Jan 26 12:30:50 2015
-# Last Modified: Mon Feb  2 19:18:21 2015
+# Last Modified: Mon 16 Feb 2015 08:32:27 PM EST
 # =================================================
 
 global OPT_VAR_NAMES = {"npoints" "method" "xvals" "cols" "output_format" "display_help"}; 
@@ -25,10 +25,8 @@ if help_flag_specified()
 	exit
 end
 
-dummy_file = ".read.stdin";
-
 if (length(OPTFILES) == 0)
-	OPTFILES={".read.stdin"};
+	OPTFILES={STDIN};
 end
 
 % check if npoints was specified
@@ -46,7 +44,7 @@ end
 for k = 1 : length(OPTFILES)
 	fin = OPTFILES{k};
 	
-	if strcmp(fin,dummy_file)
+	if strcmp(fin,STDIN)
 		log_info("Reading from stdin");
 		mat = read_mat_stdin();
 	else
