@@ -1,0 +1,278 @@
+#!/bin/bash
+#
+# Automated installer for Arch linux. Puts my basic 
+# packages on the system.
+#
+#===================================================
+# Author: Mike Berkeley Hynes mbhynes@uwaterloo.ca
+# Creation Date: Wed Feb 18 14:27:44 2015
+# Last Modified: Wed Feb 18 14:35:06 2015
+#===================================================
+
+prog_name=$(basename $0)
+base_dir=$(dirname $0)
+pacman_cmd="pacman --needed"
+
+# network-specific utilities
+network_pkg=("
+b43-fwcutter
+wpa_supplicant
+iw
+python2-iwscan
+openssh
+")
+
+x_pkg=("
+xf86-video-intel
+xf86-input-keyboard
+xf86-input-mouse
+mesa-libgl
+mesa
+xorg-server
+xorg-xinit
+xorg-xauth
+xorg-xclock
+xorg-xload
+xorg-xrandr
+xloadimage
+xterm
+xclip
+scrot
+xlockmore
+spectrwm
+alsa-lib
+alsa-utils
+ttf-dejavu
+ttf-inconsolata
+xdg-utils
+rxvt-unicode
+fbterm
+conky
+")
+
+# essential utilities
+util_pkg=("
+sudo
+wget
+vsftpd
+gptfdisk
+parted
+curl
+rsync
+cups
+pstoedit
+acpi
+msmtp
+mlocate
+atop
+gpm
+tar
+zip
+unzip
+linux-tools
+cronie
+")
+
+# laptop stuff
+laptop_pkg=("
+xf86-input-synaptics
+")
+
+application_pkg=("
+git
+ctags
+fortune-mod
+mutt
+vim 
+vim-nerdtree
+vim-surround
+vim-colorsamplerpack
+vim-omnicppcomplete
+vim-syntastic
+vim-workspace
+vim-taglist
+vim-systemd
+vim-fugitive
+vimpager
+ranger
+xfig
+transfig
+imagemagick
+gimp
+poppler
+zathura
+zathura-pdf-poppler
+zathura-djvu
+zathura-ps
+mupdf
+evince
+feh
+sxiv
+flashplugin
+octave
+maxima
+gnuplot
+ranger
+firefox
+w3m
+i3status
+elinks
+transmission-cli
+")
+
+tex_pkg=("
+texlive-most
+")
+
+misc_pkg=("
+ghc
+jdk7-openjdk
+scala
+")
+
+msg() {
+	echo "$prog_name: $@" 1>&2
+}
+
+error() {
+	msg "ERROR: $@" 
+}
+
+set_locale() {
+	lang=en_US.UTF-8
+	msg "Setting locale to $LANG"
+	ln -sf /usr/share/zoneinfo/Canada/Eastern /etc/localtime
+	pattern="$lang UTF-8"
+	sed -i -r -e "s/^#($pattern)/\1/" /etc/locale.gen
+	locale-gen
+}
+
+install_yaourt() {
+	yaourt_dir=$base_dir/yaourt
+	yaort_pkg=yaourt-1.3-1-any.pkg.tar.xz
+	pkgfile="$yaourt_dir/$yaort_pkg"
+	if [ -f "$pkgfile" ]; then
+		$pacman_cmd -U "$pkgfile"
+	else
+		error "No such file: $pkgfile"
+	fi
+}
+
+install_matlab(){
+	mlsrc=$base_dir/matlab_linux64
+	mldir=$(basename $mlsrc)
+	mldest=/usr/local/
+	if [ -d "$mlsrc" ] && [ -d "$mldest" ]; then
+		msg "Copying matlab to $mldest"
+		rsync -avz $mlsrc $mldest
+		ln -sfr "$mldest/$mldir/bin/matlab" /usr/bin/matlab
+	else
+		error "Either $mlsrc or $mldest do not exist"
+	fi
+}
+
+install_syslinux(){
+	$pacman_cmd -S syslinux
+}
+
+install_grub(){
+	$pacman_cmd -S grub
+
+	drive=/dev/sda
+	msg Choose a drive:
+	select drive in $(ls /dev/sd?); do
+		if [ -z "$drive" ]; then
+			error "No drive selected; exiting."
+			exit 1
+		fi
+		if [ ! -b "$drive" ]; then
+			error "$drive" is not a block file or does not exist.
+			exit 1
+		fi
+		
+		break
+	done
+
+	if parted $drive print | grep -q -i "msdos"; then
+		echo
+		msg "$drive is an MBR partition; grub shall be installed to $drive with the following paritions:"
+		parted $drive print
+
+		echo
+		echo
+		msg "WARNING: Do you wish to proceed? (Select 1 or 2)"
+		select ans in y n; do
+			break
+		done
+
+		if [[ "$ans" != "y" ]]; then
+			error "'y' required to continue; exiting."
+			exit 1
+		fi
+		grub-install --target=i386-pc --recheck --debug "$drive" >&2
+		grub-mkconfig | tee > /boot/grub/grub.cfg
+	fi
+}
+
+optstr="hnxuatmyglLM"
+while getopts $optstr opt; do
+	case $opt in
+		h)
+			echo 01 > /etc/hostname
+			if [ -d "$base_dir/skel" ]; then
+				msg "Copying /etc/skel/ files"
+				rsync -avz $base_dir/skel /etc
+			fi
+			;;
+		M)
+			install_matlab
+			;;
+		L)
+			set_locale
+			;;
+		m)
+			$pacman_cmd -S ${misc_pkg[@]}
+			;;
+		l)
+			$pacman_cmd -S ${laptop_pkg[@]}
+			;;
+		n)
+			$pacman_cmd -S ${network_pkg[@]}
+			;;
+		a)
+			$pacman_cmd -S ${application_pkg[@]}
+			;;
+		t)
+			$pacman_cmd -S ${tex_pkg[@]}
+			;;
+		u)
+			$pacman_cmd -S ${util_pkg[@]}
+			;;
+		x)
+			$pacman_cmd -S ${x_pkg[@]}
+			;;
+		y)
+			install_yaourt
+			;;
+		g)
+			install_grub
+			;;
+		s)
+			install_syslinux
+			;;
+		:)
+			error "Option required for -$opt"
+			;;
+		?)
+			error "Did not expect: -$opt"
+			;;
+	esac
+done
+
+if (($# == 0)); then
+	msg "$0 -- reinstall system utilies"
+	msg "The following options are available:"
+	grep -E -A1 '[[:space:]]+[^:?]\)[[:space:]]*$' $0 \
+		| sed '/--/d'
+	exit 1
+fi
