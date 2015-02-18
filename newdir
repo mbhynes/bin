@@ -1,0 +1,110 @@
+#!/bin/bash
+#
+# newdir -t dateFormat -d[ryRun] -n numDigits <prefix>
+#
+# Print a unique name for a directory of the form:
+# dir=./prefix-%y.%m.%d[-nnn]
+# where [-nnn] specifies a number that is appended 
+# such that dir is unique
+#
+# Example: On Tue Feb 17 23:06:59 EST 2015
+# >> newdir cats
+# creates
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Tue 17 Feb 2015 11:03:02 PM EST
+# Last Modified: Tue 17 Feb 2015 11:37:09 PM EST
+# =================================================
+
+date_format=""
+num_digits=""
+dry_run=""
+
+SCRIPT_NAME=$(basename $0)
+msg () {
+	echo "$SCRIPT_NAME: $@" 1>&2
+}
+warn () {
+	msg WARNING: $@
+}
+error () {
+	msg ERROR: $@
+}
+
+prepend_zeros()
+{
+	num=$1
+	len=${#num}
+	new_num="$num"
+	n=$((num_digits - len))
+	for k in $(seq 1 $n); do
+		new_num="0$new_num"
+	done
+	echo $new_num
+}
+
+new_dirname ()
+{
+	prefix=$1
+	datestr=$(date +"$date_format")
+	name="$prefix-$datestr"
+
+	k=1
+	n=$(prepend_zeros $k)
+	while [ -d "$name-$n" ]
+	do
+		((k++))
+		n=$(prepend_zeros $k)
+	done
+
+	echo $name-$n
+}
+
+optstring="t:dn:"
+while getopts "$optstring" opt; do
+	case "$opt" in
+		t)
+			date_format="$OPTARG"
+			;;
+		n)
+			num_digits="$OPTARG"
+			;;
+		d)
+			dry_run="true"
+			;;
+		:)
+			error "-$opt requires argument" 
+			;; 
+		?)
+			error invalid option
+			;; 
+	esac
+done
+shift $((OPTIND - 1))
+
+if (($# == 0)); then
+	disp_opts -h -n 20 $0 2>/dev/null
+	exit 1
+fi
+
+if [ -z "$date_format" ]; then
+	date_format='%y.%m.%d'
+fi
+
+if [ -z "$num_digits" ]; then
+	num_digits=3
+fi
+
+while (($# > 0))
+do
+	name=$(new_dirname $1)
+	if [ -z "$dry_run" ]; then
+		if ! mkdir -p "$name"; then
+			error "$name" could not be created.
+		fi
+	fi
+	echo "$name"
+
+	shift
+done
