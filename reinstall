@@ -3,10 +3,13 @@
 # Automated installer for Arch linux. Puts my basic 
 # packages on the system.
 #
+# Optionally, it can modify locale and install syslinux
+# or grub in MBR mode. 
+#
 #===================================================
 # Author: Mike Berkeley Hynes mbhynes@uwaterloo.ca
 # Creation Date: Wed Feb 18 14:27:44 2015
-# Last Modified: Wed Feb 18 14:35:06 2015
+# Last Modified: Sat 21 Feb 2015 04:33:59 AM EST
 #===================================================
 
 prog_name=$(basename $0)
@@ -34,6 +37,8 @@ xorg-xauth
 xorg-xclock
 xorg-xload
 xorg-xrandr
+xorg-xmodmap
+xorg-xev
 xloadimage
 xterm
 xclip
@@ -76,6 +81,8 @@ cronie
 # laptop stuff
 laptop_pkg=("
 xf86-input-synaptics
+xorg-xbacklight
+xbindkeys
 ")
 
 application_pkg=("
@@ -83,7 +90,7 @@ git
 ctags
 fortune-mod
 mutt
-vim 
+gvim 
 vim-nerdtree
 vim-surround
 vim-colorsamplerpack
@@ -107,6 +114,7 @@ zathura-ps
 mupdf
 evince
 feh
+mplayer
 sxiv
 flashplugin
 octave
@@ -138,12 +146,18 @@ error() {
 	msg "ERROR: $@" 
 }
 
+
 set_locale() {
+	if [[ $USER != root ]]; then
+		error "You must be root to set the locale."
+		return 1
+	fi
 	lang=en_US.UTF-8
 	msg "Setting locale to $LANG"
 	ln -sf /usr/share/zoneinfo/Canada/Eastern /etc/localtime
+	echo "LANG=$lang" > /etc/locale.conf
 	pattern="$lang UTF-8"
-	sed -i -r -e "s/^#($pattern)/\1/" /etc/locale.gen
+	sed -i -r -e "s/^#($pattern)/\1/" /etc/locale.gen 
 	locale-gen
 }
 
@@ -172,10 +186,20 @@ install_matlab(){
 }
 
 install_syslinux(){
+	if [[ $USER != root ]]; then
+		error "You must be root to install syslinux, and even then, you best watch yourself boy."
+		return 1
+	fi
 	$pacman_cmd -S syslinux
+	msg "Running syslinux-install_update"
+	syslinux-install_update -iam
 }
 
 install_grub(){
+	if [[ $USER != root ]]; then
+		error "You must be root to install grub, and even then, you best watch yourself boy."
+		return 1
+	fi
 	$pacman_cmd -S grub
 
 	drive=/dev/sda
@@ -205,7 +229,7 @@ install_grub(){
 			break
 		done
 
-		if [[ "$ans" != "y" ]]; then
+		if [[ $ans != y ]]; then
 			error "'y' required to continue; exiting."
 			exit 1
 		fi
@@ -214,14 +238,25 @@ install_grub(){
 	fi
 }
 
-optstr="hnxuatmyglLM"
+packages=""
+optstr="AShnxuatmyglLMs"
 while getopts $optstr opt; do
 	case $opt in
+		S)
+			pacman_cmd="sudo $pacman_cmd"
+			msg "Running as non-root user; ensure you have sudo priveleges."
+			;;
 		h)
-			echo 01 > /etc/hostname
+			host="exo"
+			loopback=127.0.0.2
+			echo $host > /etc/hostname
 			if [ -d "$base_dir/skel" ]; then
 				msg "Copying /etc/skel/ files"
 				rsync -avz $base_dir/skel /etc
+			fi
+			if ! grep "$loopback" /etc/hosts; then
+				msg "No loopback address $loopback in /etc/hosts; appending it."
+				echo "$loopback	$host" >> /etc/hosts
 			fi
 			;;
 		M)
@@ -230,26 +265,29 @@ while getopts $optstr opt; do
 		L)
 			set_locale
 			;;
+		A)
+			install_all="true"
+			;;
 		m)
-			$pacman_cmd -S ${misc_pkg[@]}
+			packages="$packages ${misc_pkg[@]}"
 			;;
 		l)
-			$pacman_cmd -S ${laptop_pkg[@]}
+			packages="$packages ${laptop_pkg[@]}"
 			;;
 		n)
-			$pacman_cmd -S ${network_pkg[@]}
+			packages="$packages ${network_pkg[@]}"
 			;;
 		a)
-			$pacman_cmd -S ${application_pkg[@]}
+			packages="$packages ${application_pkg[@]}"
 			;;
 		t)
-			$pacman_cmd -S ${tex_pkg[@]}
+			packages="$packages ${tex_pkg[@]}"
 			;;
 		u)
-			$pacman_cmd -S ${util_pkg[@]}
+			packages="$packages ${util_pkg[@]}"
 			;;
 		x)
-			$pacman_cmd -S ${x_pkg[@]}
+			packages="$packages ${x_pkg[@]}"
 			;;
 		y)
 			install_yaourt
@@ -275,4 +313,13 @@ if (($# == 0)); then
 	grep -E -A1 '[[:space:]]+[^:?]\)[[:space:]]*$' $0 \
 		| sed '/--/d'
 	exit 1
+fi
+
+if [ -n "$install_all" ]; then
+	packages="${x_pkg[@]} ${util_pkg[@]} ${tex_pkg[@]} ${application_pkg[@]} ${network_pkg[@]} ${laptop_pkg[@]} ${misc_pkg[@]}"
+fi
+
+if [ -n "$packages" ]; then
+	msg "Intalling the following: $packages"
+	$pacman_cmd -S $packages
 fi
