@@ -111,7 +111,7 @@ files_from_year() # year
 
 
 # if given parameters, parse and compile
-optstring="Ld:o:H:F:h"
+optstring="Ld:o:H:F:hv"
 while getopts "$optstring" opt; do
 	case "$opt" in
 		L)
@@ -132,6 +132,9 @@ while getopts "$optstring" opt; do
 		h)
 			print_help 
 			exit 1
+			;;
+		v)
+			VERBOSE_FLAG="true"
 			;;
 		:)
 			error "-$opt requires argument" 
