@@ -7,11 +7,11 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Fri Feb  6 01:41:40 2015
-# Last Modified: Fri Feb  6 13:14:08 2015
+# Last Modified: Sat 21 Feb 2015 09:54:24 PM EST
 # =================================================
 
 i3status -c ~/.i3status 2>/dev/null | while :
 do
 	read line
-	sed -r -e 's/\|/\t\t/g' <<< "ram: $(showram) | $line"  
+	sed -r -e 's/\|/__/g; s/GiB/GB/g' <<< "| ram: $(showram) | $line"  
 done

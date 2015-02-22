@@ -7,7 +7,7 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Fri Feb  6 01:14:36 2015
-# Last Modified: Fri Feb  6 11:33:17 2015
+# Last Modified: Sat 21 Feb 2015 09:54:40 PM EST
 # =================================================
 
 NUM_DECIMALS=2
@@ -26,4 +26,4 @@ mem_free=$(get_ram_entry "MemAvailable")
 percent_used=$(bc <<< "scale=$NUM_DECIMALS; 100 * ($mem_tot - $mem_free) / $mem_tot")
 gb_total=$(bc <<< "scale=$NUM_DECIMALS; $mem_tot / 1024 / 1024 ")
 
-echo "$percent_used% of $gb_total Gb"
+echo "$percent_used% of $gb_total GB"

@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Automated installer for Arch linux. Puts my basic 
-# packages on the system.
+# packages back on the system.
 #
 # Optionally, it can modify locale and install syslinux
 # or grub in MBR mode. 
@@ -9,7 +9,7 @@
 #===================================================
 # Author: Mike Berkeley Hynes mbhynes@uwaterloo.ca
 # Creation Date: Wed Feb 18 14:27:44 2015
-# Last Modified: Sat 21 Feb 2015 04:33:59 AM EST
+# Last Modified: Sat 21 Feb 2015 05:00:40 AM EST
 #===================================================
 
 prog_name=$(basename $0)
@@ -218,12 +218,8 @@ install_grub(){
 	done
 
 	if parted $drive print | grep -q -i "msdos"; then
-		echo
 		msg "$drive is an MBR partition; grub shall be installed to $drive with the following paritions:"
 		parted $drive print
-
-		echo
-		echo
 		msg "WARNING: Do you wish to proceed? (Select 1 or 2)"
 		select ans in y n; do
 			break
