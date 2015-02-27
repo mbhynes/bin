@@ -4,7 +4,7 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Mon Jan 26 13:33:27 2015
-# Last Modified: Tue 17 Feb 2015 03:34:33 PM EST
+# Last Modified: Fri 27 Feb 2015 05:49:51 PM EST
 #=================================================
 
 # add character escapes to certain strings
@@ -107,10 +107,10 @@ while getopts $OPTSTRING opt; do
 			errorbars="true"
 			;;
 		x)
-			xtit="$OPTARG"
+			x_label="$OPTARG"
 			;;
 		y)
-			ytit="$OPTARG"
+			y_label="$OPTARG"
 			;;
 		L) # read legend strings into array
 			read -a legend <<< "$OPTARG"
@@ -213,11 +213,11 @@ EOF
 fi
 
 # set the x,y labels, if they exist
-if [ "$xtit" ]; then
-	echo "set xlabel '$(escape_tex_chars $xtit)'" >> $plot_script
+if [ "$x_label" ]; then
+	echo "set xlabel '$(escape_tex_chars $x_label)'" >> $plot_script
 fi
-if [ "$ytit" ]; then
-	echo "set ylabel '$(escape_tex_chars $ytit)'" >> $plot_script
+if [ "$y_label" ]; then
+	echo "set ylabel '$(escape_tex_chars $y_label)'" >> $plot_script
 fi
 
 # set the legend, if it exists

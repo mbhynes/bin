@@ -1,12 +1,14 @@
 #!/bin/bash
 #
-# tab
+# tab [-h headerString] [-d delimiter] [-n numLines] [-c colspec] [file1 file2 ...]
+#
+# Convert tabularized textfile to a latex tabular environment.
 #
 # =================================================
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Tue 17 Feb 2015 11:05:54 AM EST
-# Last Modified: Tue 17 Feb 2015 01:01:52 PM EST
+# Last Modified: Fri 27 Feb 2015 05:44:52 PM EST
 # =================================================
 
 HLINE='\\\hline'
@@ -66,6 +68,36 @@ default_colspec() {
 	yes "$COLSPEC" | head -n $((num_cols+1)) | tr -d '\n' 
 }
 
+example_file() {
+	cat <<EOF
+1,34e-3,Aristotle
+2,35e-4,Xerxes
+3,32e-5,Paris
+EOF
+}
+
+run_example() {
+	header="Lions,Tigers,Bears"
+	cmd="tab -d , -n 2 -c lll -h $header"
+	tmpfile=$(mktemp)
+	example_file > $tmpfile
+	cat <<EOF
+
+Example:
+
+Running $cmd on the following file:
+
+EOF
+	cat $tmpfile 
+	cat <<EOF
+
+Produces:
+
+EOF
+	$cmd $tmpfile 1>&2
+	rm $tmpfile
+}
+
 optstring="h:d:n:c:"
 while getopts "$optstring" opt; do
 	case "$opt" in
@@ -90,6 +122,12 @@ while getopts "$optstring" opt; do
 	esac
 done
 shift $((OPTIND - 1))
+
+if (($# == 0)); then
+	disp_opts -h -n 20 $0 2>/dev/null
+	run_example
+	exit
+fi
 
 if [ -z "$delim" ]; then
 	delim=","
