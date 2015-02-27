@@ -9,7 +9,7 @@
 #===================================================
 # Author: Mike Berkeley Hynes mbhynes@uwaterloo.ca
 # Creation Date: Wed Feb 18 14:27:44 2015
-# Last Modified: Sat 21 Feb 2015 05:00:40 AM EST
+# Last Modified: Thu 26 Feb 2015 01:36:43 AM EST
 #===================================================
 
 prog_name=$(basename $0)
@@ -51,6 +51,7 @@ ttf-dejavu
 ttf-inconsolata
 xdg-utils
 rxvt-unicode
+urxvt-perls
 fbterm
 conky
 ")
@@ -100,6 +101,7 @@ vim-workspace
 vim-taglist
 vim-systemd
 vim-fugitive
+vim-latexsuite
 vimpager
 ranger
 xfig
@@ -124,6 +126,7 @@ ranger
 firefox
 w3m
 i3status
+lynx
 elinks
 transmission-cli
 ")
