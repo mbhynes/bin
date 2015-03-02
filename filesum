@@ -1,4 +1,4 @@
-#!/usr/bin/octave -qf
+#!/usr/bin/octave -q
 # sum matrix in many OPTFILES
 #
 #=====================================
@@ -8,26 +8,27 @@
 #==================================================
 # SET OPTIONAL COMMAND-LINE ARGUMENTS
 #==================================================
-global OPT_VAR_NAMES = {"cols" "output_format" "avg_flag"}; 
-global OPT_VAR_FLAGS = {"c" "f" "m"};
-global OPT_VAR_DEFAULTS = {"[]" "'%8.8f\t'" "[]"};
+global OPT_VAR_NAMES = {"cols" "output_format" "avg_flag" "display_help"}; 
+global OPT_VAR_FLAGS = {"c" "f" "m" "h"};
+global OPT_VAR_DEFAULTS = {"[]" "'%8.8f\t'" "[]" "false"};
 global OPT_FLAG_HASARGS = {"c" "f"}; 
 
 parse_opts 
 
-dummy_file = ".read.stdin";
-
-if (length(OPTFILES) == 0)
-	OPTFILES={".read.stdin"};
+if help_flag_specified()
+	display_opts()
+	exit
 end
 
+if (length(OPTFILES) == 0)
+	OPTFILES={STDIN};
+end
 result = 0;
 
 for k = 1 : length(OPTFILES)
 	fin = OPTFILES{k};
-	fprintf(stderr,"Reading %s\n",fin)
-	if strcmp(fin,dummy_file)
-		out = read_stdin();
+	if strcmp(fin,STDIN)
+		out = read_mat_stdin();
 	else
 		out = load(fin);
 	end

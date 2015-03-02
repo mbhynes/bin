@@ -1,4 +1,4 @@
-#!/usr/bin/octave -qf
+#!/usr/bin/octave -q
 # generate histogram of input OPTFILES
 #
 #=====================================
@@ -8,17 +8,30 @@
 #==================================================
 # SET OPTIONAL COMMAND-LINE ARGUMENTS
 #==================================================
-global OPT_VAR_NAMES = {"bins" "cols" "flag_norm" "flag_err" "output_format"}; 
-global OPT_VAR_FLAGS = {"b" "c" "N" "e" "f"};
-global OPT_VAR_DEFAULTS = {"100" "[]" "0" "0" "'%8.8f\t'"};
+global OPT_VAR_NAMES = {"bins" "cols" "flag_norm" "flag_err" "output_format" "display_help"}; 
+global OPT_VAR_FLAGS = {"b" "c" "N" "e" "f" "h"};
+global OPT_VAR_DEFAULTS = {"100" "[]" "0" "0" "'%8.8f\t'" "false"};
 global OPT_FLAG_HASARGS = {"b" "c" "f"}; 
 
 parse_opts
 
+if help_flag_specified()
+	display_opts()
+	exit
+end
+
+if (length(OPTFILES) == 0)
+	OPTFILES={STDIN};
+end
+
 for k = 1:length(OPTFILES)
 
   fin = OPTFILES{k};
-	data = load(fin);
+	if strcmp(fin,STDIN)
+		data = read_mat_stdin();
+	else
+		data = load(fin);
+	end
 	[n,m] = size(data);
 
 	# check if cols is contained in [1:m]
@@ -66,9 +79,12 @@ for k = 1:length(OPTFILES)
 		out = [bin_centres counts];
 	end
 
-	output_str = [repmat(output_format,1,length(out(1,:))) "\n"];
+	output_str = [repmat(output_format,1,length(out(1,:)))];
+	fprintf(1, [output_str(1:end-1) "\n"],out');
+
+	#output_str = [repmat(output_format,1,length(out(1,:))) "\n"];
 
 	% print to stdout
-	fprintf(1,output_str,out');
+	#fprintf(1,output_str,out');
 
 end
