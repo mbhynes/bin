@@ -81,11 +81,11 @@ concat_files() {
 	msg "Using a time delay of $delay milliseconds"
 	_convert="convert -loop 0 -delay $delay" 
 	for gif in "$@"; do
-		msg "procesing $gif"
-		_convert="$_convert -delay $delay $gif"
+		msg "procesing '$gif'"
+		_convert="$_convert -delay $delay '$gif'"
 	done
 	msg "merging files to to $output_file"
-	_convert="$_convert -layers Optimize $output_file"
+	_convert="$_convert -layers Optimize '$output_file'"
 	eval "$_convert"
 
 	return $?
@@ -105,8 +105,8 @@ while getopts "$optstring" opt; do
 		o)
 			output_filename="$OPTARG"
 			out_dir=$(dirname $output_filename)
-			ext=$(ext $name)
-			output_file=$out_dir/$(basename $output_filename $ext).gif
+			extension=$(ext $output_filename)
+			output_file=$out_dir/$(basename $output_filename $extension).gif
 			;;
 		t)
 			use_timestamp="true"
@@ -136,6 +136,7 @@ if [ -z "$output_file" ]; then
 fi
 
 if [ -n "$use_timestamp" ]; then
+	msg "Using timestamps for delays."
 	concat_timestamp_files "$@"
 else
 	if [ -z "$delay" ]; then

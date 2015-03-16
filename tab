@@ -8,7 +8,7 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Tue 17 Feb 2015 11:05:54 AM EST
-# Last Modified: Fri 27 Feb 2015 05:44:52 PM EST
+# Last Modified: Fri 06 Mar 2015 02:45:26 PM EST
 # =================================================
 
 HLINE='\\\hline'
@@ -46,7 +46,7 @@ s/\&/\\&/g
 s/\#/\\#/g
 s/$delim/\&\t/g
 s/$/$EOL/
-s/\\\$/\\\\\$/
+# s/\\\$/\\\\\$/
 EOF
 }
 begin_table() {
