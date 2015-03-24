@@ -44,9 +44,8 @@ for k = 1:length(OPTFILES)
 	v = data(:,cols);
 	out = max(v);
 
-	output_str = [repmat(output_format,1,length(out(1,:))) "\n"];
-
+	output_str = repmat(output_format,1,length(out(1,:)));
 	% print to stdout
-	fprintf(1,output_str,out');
+	fprintf(1,[output_str(1:end-1) "\n"],out');
 
 end

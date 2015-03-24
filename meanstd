@@ -1,4 +1,4 @@
-#!/usr/bin/octave -qf
+#!/usr/bin/octave -q
 # print mean/stdev of input OPTFILES, normalized to 1/(N-1)
 #
 #=====================================

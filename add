@@ -1,5 +1,5 @@
 #!/usr/bin/octave -q
-# print min of input OPTFILES, normalized to 1/(N-1)
+# print max of input OPTFILES, normalized to 1/(N-1)
 #
 #=====================================
 # ex: set filetype=octave:
@@ -42,7 +42,7 @@ for k = 1:length(OPTFILES)
 	end
 
 	v = data(:,cols);
-	out = min(v);
+	out = sum(v);
 
 	output_str = repmat(output_format,1,length(out(1,:)));
 	% print to stdout
