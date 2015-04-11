@@ -1,0 +1,59 @@
+#!/usr/bin/octave -q
+# take the natural log of numbers in specified files
+#
+#=====================================
+# ex: set filetype=octave:
+#=====================================
+
+#==================================================
+# SET OPTIONAL COMMAND-LINE ARGUMENTS
+#==================================================
+global OPT_VAR_NAMES = {"base" "cols" "output_format" "display_help"}; 
+global OPT_VAR_FLAGS = {"b" "c" "f" "h"};
+global OPT_VAR_DEFAULTS = {"[]" "[]" "'%8.8f\t'" "false"};
+global OPT_FLAG_HASARGS = {"b" "c" "f"}; 
+
+parse_opts
+
+if help_flag_specified()
+	display_opts()
+	exit
+end
+
+if (length(OPTFILES) == 0)
+	OPTFILES={STDIN};
+end
+
+for k = 1:length(OPTFILES)
+  fin = OPTFILES{k};
+	if strcmp(fin,STDIN)
+		data = read_mat_stdin();
+	else
+		data = load(fin);
+	end
+	[n,m] = size(data);
+
+	# check if cols is contained in [1:m]
+	ncols = numel(cols);
+	colspan = [1:m];
+	if !ncols || !(numel(intersect(cols,colspan)) == ncols)
+		cols = colspan;
+		ncols = numel(cols);
+	end
+
+	v = data(:,cols);
+	if ~isempty(base)
+		if (base == 10)
+			out = log10(v);
+		else
+			out = log10(v)./log10(base);
+		end
+	else
+		out = log(v);
+	end
+
+	output_str = repmat(output_format,1,length(out(1,:)));
+	% print to stdout
+	fprintf(1,[output_str(1:end-1) "\n"],out');
+
+end

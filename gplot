@@ -4,7 +4,7 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Mon Jan 26 13:33:27 2015
-# Last Modified: Fri 27 Feb 2015 05:49:51 PM EST
+# Last Modified: Fri 10 Apr 2015 11:55:02 PM EDT
 #=================================================
 
 # add character escapes to certain strings
@@ -59,6 +59,7 @@ set xtics norangelimit
 set format '%g'
 
 # logscale options
+#set log y
 #set log x
 #set mxtics 10    
 
