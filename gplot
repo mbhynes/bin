@@ -4,8 +4,19 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Mon Jan 26 13:33:27 2015
-# Last Modified: Fri 10 Apr 2015 11:55:02 PM EDT
+# Last Modified: Sun 12 Apr 2015 12:53:39 AM EDT
 #=================================================
+
+SCRIPT_NAME=$(basename $0)
+msg () {
+	echo "$SCRIPT_NAME: $@" 1>&2
+}
+warn () {
+	msg WARNING: $@
+}
+error () {
+	msg ERROR: $@
+}
 
 # add character escapes to certain strings
 escape_tex_chars() {
