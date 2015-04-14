@@ -14,10 +14,10 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Tue 17 Feb 2015 11:03:02 PM EST
-# Last Modified: Tue 17 Feb 2015 11:37:09 PM EST
+# Last Modified: Tue 14 Apr 2015 03:48:33 PM EDT
 # =================================================
 
-date_format=""
+date_format='%y.%m.%d'
 num_digits=""
 dry_run=""
 
@@ -48,22 +48,25 @@ new_dirname ()
 {
 	prefix=$1
 	datestr=$(date +"$date_format")
-	name="$prefix-$datestr"
+	name="$prefix$datestr"
 
 	k=1
 	n=$(prepend_zeros $k)
-	while [ -d "$name-$n" ]
+	while [ -d "$name$n" ]
 	do
 		((k++))
 		n=$(prepend_zeros $k)
 	done
 
-	echo $name-$n
+	echo "$name$n"
 }
 
-optstring="t:dn:"
+optstring="r:t:dn:"
 while getopts "$optstring" opt; do
 	case "$opt" in
+		r)
+			relpath="$OPTARG"
+			;;
 		t)
 			date_format="$OPTARG"
 			;;
@@ -86,10 +89,6 @@ shift $((OPTIND - 1))
 if (($# == 0)); then
 	disp_opts -h -n 20 $0 2>/dev/null
 	exit 1
-fi
-
-if [ -z "$date_format" ]; then
-	date_format='%y.%m.%d'
 fi
 
 if [ -z "$num_digits" ]; then
