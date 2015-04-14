@@ -95,8 +95,8 @@ print_opts() {
 
 	echo "Options:"
 	cat_getopts_block "$1" \
-		| print_each_opt \
-		| tr -s ' \t\n' '\t\t\n'
+		| print_each_opt  \
+		| tr -s '\n \t'
 
 	return 0
 }

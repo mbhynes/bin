@@ -30,7 +30,7 @@ for k = 1:length(OPTFILES)
 	if strcmp(fin,STDIN)
 		data = read_mat_stdin();
 	else
-		data = load(fin);
+		data = dlmread(fin);
 	end
 	[n,m] = size(data);
 

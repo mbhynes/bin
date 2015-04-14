@@ -38,7 +38,7 @@
 % Author: Michael B Hynes, mbhynes@uwaterloo.ca
 % License: GPL 3
 % Creation Date: Wed 21 Jan 2015 06:25:47 PM EST
-% Last Modified: Mon 16 Feb 2015 08:32:58 PM EST
+% Last Modified: Tue 14 Apr 2015 03:11:11 PM EDT
 % =================================================
 
 global OPT_VAR_NAMES;
@@ -169,14 +169,14 @@ function [flags args files] = get_opts(list)
 					% check that the argument is a non-flag value
 					if is_flag(arg)
 						log_error(["argument to " param " expected, but found flag: " arg]);
-					else
-						log_info(["Read flag: " param " with argument: " args{arg_num}]);
+					% else
+					% 	log_info(["Read flag: " param " with argument: " args{arg_num}]);
 					end
 
 					k += 2;
 				else
 					args{arg_num} = "1";
-					log_info(["Read non-argument flag: " param]);
+					% log_info(["Read non-argument flag: " param]);
 					k++;
 				end
 
@@ -190,8 +190,8 @@ function [flags args files] = get_opts(list)
 		else
 			if is_stdin(param)
 				log_info(["- specified on commandline; Reading from stdin."]);
-			else
-				log_info(["Read non-flag argument: " param]);
+			% else
+			% 	log_info(["Read non-flag argument: " param]);
 			end
 
 			files{file_num} = list{k};

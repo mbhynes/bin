@@ -6,7 +6,7 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Mon Jan 26 12:30:50 2015
-# Last Modified: Mon 16 Feb 2015 08:32:27 PM EST
+# Last Modified: Tue 14 Apr 2015 03:14:00 PM EDT
 # =================================================
 
 global OPT_VAR_NAMES = {"npoints" "method" "xvals" "cols" "output_format" "display_help"}; 
@@ -49,7 +49,7 @@ for k = 1 : length(OPTFILES)
 		mat = read_mat_stdin();
 	else
 		log_info(["Reading matrix from file: " fin]);
-		mat = load(fin);
+		mat = dlmread(fin);
 	end
 
 	[nrows ncols] = size(mat); 

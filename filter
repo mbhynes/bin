@@ -21,7 +21,7 @@ parse_opts
 for k = 1:length(OPTFILES)
 
   fin = OPTFILES{k};
-	data = load(fin);
+	data = dlmread(fin);
 	[n,m] = size(data);
 
 	# check if cols is contained in [1:m]

@@ -8,17 +8,30 @@
 #==================================================
 # SET OPTIONAL COMMAND-LINE ARGUMENTS
 #==================================================
-global OPT_VAR_NAMES = {"dim" "cols" "flag_std" "flag_keep_col1" "output_format"}; 
-global OPT_VAR_FLAGS = {"d" "c" "s" "1" "f"};
-global OPT_VAR_DEFAULTS = {"2" "[]" "0" "0" "'%8.8f\t'"};
+global OPT_VAR_NAMES = {"dim" "cols" "flag_std" "flag_keep_col1" "output_format" "display_help"}; 
+global OPT_VAR_FLAGS = {"d" "c" "s" "1" "f" "h"};
+global OPT_VAR_DEFAULTS = {"2" "[]" "0" "0" "'%8.8f\t'" "false"};
 global OPT_FLAG_HASARGS = {"d" "c" "f"}; 
 
 parse_opts
 
+if help_flag_specified()
+	display_opts()
+	exit
+end
+
+if (length(OPTFILES) == 0)
+	OPTFILES={STDIN};
+end
+
 for k = 1:length(OPTFILES)
 
   fin = OPTFILES{k};
-	data = load(fin);
+	if strcmp(fin,STDIN)
+		data = read_mat_stdin();
+	else
+		data = dlmread(fin);
+	end
 	[n,m] = size(data);
 
 	# check if cols is contained in [1:m]
