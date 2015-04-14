@@ -4,7 +4,7 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Mon Jan 26 13:33:27 2015
-# Last Modified: Sun 12 Apr 2015 12:53:39 AM EDT
+# Last Modified: Tue 14 Apr 2015 03:55:54 PM EDT
 #=================================================
 
 SCRIPT_NAME=$(basename $0)
@@ -70,8 +70,6 @@ set xtics norangelimit
 set format '%g'
 
 # logscale options
-#set log y
-#set log x
 #set mxtics 10    
 
 set datafile missing "NaN"
@@ -82,7 +80,7 @@ EOF
 
 DEFAULT_TERM="postscript eps enhanced"
 
-OPTSTRING=t:ex:y:L:h:o:P:T:f:s:w:FX:Y:d:
+OPTSTRING=t:ex:y:L:h:o:P:T:f:s:w:FX:Y:d:Zz
 while getopts $OPTSTRING opt; do
 	case $opt in
 		d)
@@ -132,6 +130,12 @@ while getopts $OPTSTRING opt; do
 			;;
 		h)
 			header="$OPTARG"
+			;;
+		Z)
+			setlogy="true"
+			;;
+		z)
+			setlogx="true"
 			;;
 		:)
 			echo "-$opt requires argument"
@@ -225,6 +229,12 @@ EOF
 fi
 
 # set the x,y labels, if they exist
+if [ -n "$setlogy" ]; then
+	echo "set log y" >> "$plot_script"
+fi
+if [ -n "$setlogx" ]; then
+	echo "set log x" >> "$plot_script"
+fi
 if [ "$x_label" ]; then
 	echo "set xlabel '$(escape_tex_chars $x_label)'" >> $plot_script
 fi

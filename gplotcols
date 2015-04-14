@@ -4,7 +4,7 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Mon Jan 26 13:33:27 2015
-# Last Modified: Tue 17 Feb 2015 03:34:25 PM EST
+# Last Modified: Tue 14 Apr 2015 03:57:06 PM EDT
 #=================================================
 
 
@@ -52,7 +52,6 @@ set xtics norangelimit
 set format '%g'
 
 # logscale options
-#set log x
 #set mxtics 10    
 
 set datafile missing "NaN"
@@ -69,7 +68,7 @@ if which gplot_vars 1>&2 2>/dev/null; then
 fi
 
 
-OPTSTRING=t:ex:y:L:h:o:P:T:f:s:w:d:
+OPTSTRING=t:ex:y:L:h:o:P:T:f:s:w:d:Zz
 while getopts $OPTSTRING opt; do
 	case $opt in
 		d)
@@ -114,6 +113,12 @@ while getopts $OPTSTRING opt; do
 		:)
 			echo "-$opt requires argument"
 			exit 1
+			;;
+		Z)
+			setlogy="true"
+			;;
+		z)
+			setlogx="true"
 			;;
 		\?) 
 			echo "invalid option -$opt"
@@ -174,6 +179,12 @@ EOF
 		fi
 	fi
 
+	if [ -n "$setlogy" ]; then
+		echo "set log y" >> "$plot_script"
+	fi
+	if [ -n "$setlogx" ]; then
+		echo "set log x" >> "$plot_script"
+	fi
 	# set the x,y labels, if they exist
 	if [ "$xtit" ]; then
 		echo "set xlabel '$(escape_tex_chars $xtit)'" >> $plot_script
