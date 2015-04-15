@@ -1,0 +1,38 @@
+#!/usr/bin/octave -q
+# print min of input OPTFILES, normalized to 1/(N-1)
+#
+#=====================================
+# ex: set filetype=octave:
+#=====================================
+
+#==================================================
+# SET OPTIONAL COMMAND-LINE ARGUMENTS
+#==================================================
+global OPT_VAR_NAMES = {"seed" "is_normal" "nrows" "ncols" "output_format" "display_help"}; 
+global OPT_VAR_FLAGS = {"s" "N" "n" "m" "f" "h"};
+global OPT_VAR_DEFAULTS = {"0"  "false" "[]" "[]" "'%8.8f\t'" "false"};
+global OPT_FLAG_HASARGS = {"s" "n" "m" "f"}; 
+
+parse_opts
+
+if help_flag_specified()
+	display_opts()
+	exit
+end
+
+if (length(OPTFILES) == 0)
+	OPTFILES={STDIN};
+end
+
+if isempty(nrows) || isempty(ncols)
+	exit
+end
+
+rand("twister",seed);
+if is_normal()
+	out = randn(nrows,ncols);
+else
+	out = rand(nrows,ncols);
+end
+output_str = repmat(output_format,1,length(out(1,:)));
+fprintf(1,[output_str(1:end-1) "\n"],out');

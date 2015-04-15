@@ -49,6 +49,12 @@ for k = 1:length(OPTFILES)
 		bin_centres = bin_centres';
 	end
 
+	# pad the counts with zeros for better plotting
+	counts = [zeros(1,ncols); counts; zeros(1,ncols)];
+	d1 = diff(bin_centres(1:2,:));
+	d2 = diff(bin_centres(bins-1:bins,:));
+	bin_centres = [ bin_centres(1,:) - d1; bin_centres; bin_centres(bins,:) + d2 ];
+
 	if flag_norm
 		tot_counts = sum(counts);
 

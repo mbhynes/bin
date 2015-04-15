@@ -64,9 +64,8 @@ for k = 1:length(OPTFILES)
 	end
 
 
-	output_str = [repmat(output_format,1,length(out(1,:))) "\n"];
-
 	% print to stdout
-	fprintf(1,output_str,out');
+	output_str = repmat(output_format,1,length(out(1,:)));
+	fprintf(1,[output_str(1:end-1) "\n"],out');
 
 end

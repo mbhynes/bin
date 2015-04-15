@@ -38,7 +38,7 @@
 % Author: Michael B Hynes, mbhynes@uwaterloo.ca
 % License: GPL 3
 % Creation Date: Wed 21 Jan 2015 06:25:47 PM EST
-% Last Modified: Tue 14 Apr 2015 03:11:11 PM EDT
+% Last Modified: Wed 15 Apr 2015 09:47:24 AM EDT
 % =================================================
 
 global OPT_VAR_NAMES;
@@ -72,6 +72,15 @@ end
 % read matrix from stdin
 function mat = read_mat_stdin()
 	mat = dlmread(stdin,'');
+end
+
+% return v' if v is a row vector 
+function V = make_col_vec(v)
+	[n,m] = size(v);
+	V = v;
+	if (m > n)
+		V = v';
+	end
 end
 
 function bool = help_flag_specified(help_flag)
@@ -188,11 +197,11 @@ function [flags args files] = get_opts(list)
 			arg_num++;
 
 		else
-			if is_stdin(param)
-				log_info(["- specified on commandline; Reading from stdin."]);
+			% if is_stdin(param)
+			% 	log_info(["- specified on commandline; Reading from stdin."]);
 			% else
 			% 	log_info(["Read non-flag argument: " param]);
-			end
+			% end
 
 			files{file_num} = list{k};
 			file_num++;
