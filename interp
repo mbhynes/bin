@@ -6,7 +6,7 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Mon Jan 26 12:30:50 2015
-# Last Modified: Tue 14 Apr 2015 03:14:00 PM EDT
+# Last Modified: Fri 17 Apr 2015 05:28:04 PM EDT
 # =================================================
 
 global OPT_VAR_NAMES = {"npoints" "method" "xvals" "cols" "output_format" "display_help"}; 
@@ -36,8 +36,6 @@ if np
 end
 
 if ~npoints
-	log_warn("-n <npoints> and -x <[x_1 x_2 ...]> unspecified."); 
-	log_warn("Using 100 uniform steps in input data range");
 	npoints = 100;
 end
 
@@ -45,10 +43,8 @@ for k = 1 : length(OPTFILES)
 	fin = OPTFILES{k};
 	
 	if strcmp(fin,STDIN)
-		log_info("Reading from stdin");
 		mat = read_mat_stdin();
 	else
-		log_info(["Reading matrix from file: " fin]);
 		mat = dlmread(fin);
 	end
 

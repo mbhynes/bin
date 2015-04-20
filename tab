@@ -8,7 +8,7 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Tue 17 Feb 2015 11:05:54 AM EST
-# Last Modified: Fri 06 Mar 2015 02:45:26 PM EST
+# Last Modified: Fri 17 Apr 2015 06:19:52 PM EDT
 # =================================================
 
 HLINE='\\\hline'
@@ -64,7 +64,10 @@ convert_to_tex() {
 	end_table
 }
 default_colspec() {
-	num_cols=$(head -n 1 "$1" | grep -o "$delim" | wc -l)
+	# warning! this will not work on substituted processes
+	if [ -z "$num_cols" ]; then
+		num_cols=$(head -n 1 "$1" | grep -o "$delim" | wc -l)
+	fi
 	yes "$COLSPEC" | head -n $((num_cols+1)) | tr -d '\n' 
 }
 
@@ -98,7 +101,7 @@ EOF
 	rm $tmpfile
 }
 
-optstring="h:d:n:c:"
+optstring="h:d:n:c:N:"
 while getopts "$optstring" opt; do
 	case "$opt" in
 		h)
@@ -112,6 +115,9 @@ while getopts "$optstring" opt; do
 			;;
 		c)
 			colspec="$OPTARG"
+			;;
+		N)
+			num_cols="$OPTARG"
 			;;
 		:)
 			error "-$opt requires argument" 

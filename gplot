@@ -4,7 +4,7 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Mon Jan 26 13:33:27 2015
-# Last Modified: Tue 14 Apr 2015 03:55:54 PM EDT
+# Last Modified: Sun 19 Apr 2015 03:45:00 PM EDT
 #=================================================
 
 SCRIPT_NAME=$(basename $0)
@@ -42,13 +42,13 @@ set $xrange
 set $yrange
 
 # Line styles 
-set style line 1 lc rgb "#A00000" lt 1 lw $linewidth pt 13 ps 1.5
-set style line 2 lc rgb "#00A000" lt 1 lw $linewidth pt 3 ps 1.2
-set style line 3 lc rgb '#0060ad' lt 1 lw $linewidth pt 9 ps 1.5 
-set style line 4 lc rgb "#ad0060" lt 1 lw $linewidth pt 5 ps 1.2
-set style line 5 lc rgb "#F25900" lt 1 lw $linewidth pt 7 ps 1.5
-set style line 6 lc rgb '#aa0b1d' lt 1 lw $linewidth pt 14 ps 1.5 
-set style line 7 lc rgb '#60ad00' lt 1 lw $linewidth pt 1 ps 1.5 
+set style line 1 lc rgb "#A30000" lt 1 lw $linewidth pt 13 ps 1.5
+set style line 2 lc rgb "#00A000" lt 2 lw $linewidth pt 3 ps 1.2
+set style line 3 lc rgb '#0060ad' lt 3 lw $linewidth pt 9 ps 1.5 
+set style line 4 lc rgb "#ad0060" lt 4 lw $linewidth pt 5 ps 1.2
+set style line 5 lc rgb "#F25900" lt 5 lw $linewidth pt 7 ps 1.5
+set style line 6 lc rgb '#60ad00' lt 6 lw $linewidth pt 1 ps 1.5 
+set style line 7 lc rgb '#000b1d' lt 7 lw $linewidth pt 14 ps 1.5 
 
 # Fill styles 
 set style fill border
@@ -172,7 +172,7 @@ if [ -z "$linewidth" ]; then
 fi
 
 if [ -z "$terminal_size" ]; then
-	terminal_size="5,3"
+	terminal_size="4,2.5"
 fi
 
 if [ -z "$terminal" ] && [ -z "$header"]; then
@@ -181,6 +181,7 @@ fi
 
 if [ -z "$font" ]; then
 	font="Times,16,Bold" 
+	font="Verdana,14,Bold" 
 fi
 
 if [ -z "$xrange" ]; then
@@ -231,9 +232,11 @@ fi
 # set the x,y labels, if they exist
 if [ -n "$setlogy" ]; then
 	echo "set log y" >> "$plot_script"
+	echo 'set format y "10^{%L}"' >> "$plot_script"
 fi
 if [ -n "$setlogx" ]; then
 	echo "set log x" >> "$plot_script"
+	echo 'set format x "10^{%L}"' >> "$plot_script"
 fi
 if [ "$x_label" ]; then
 	echo "set xlabel '$(escape_tex_chars $x_label)'" >> $plot_script
@@ -283,7 +286,7 @@ for file in "$@"; do
 # check if only 1 file is given:
 	if (($# == 1)) ; then
 		if [ "$errorbars" ] && ((num_cols > 2));	then
-			if [ "$filled" ];	then
+			if [ -n "$filled" ];	then
 				echo "plot '$file' using 1:(\$2-\$3):(\$2+\$3) title '$leg_entry' with filledcurves \\" >> $plot_script
 			else
 				echo "plot '$file' title '$leg_entry' with errorbars $line, \\" >> $plot_script
@@ -299,7 +302,7 @@ for file in "$@"; do
 # first plot command; use filename, follow with comma and linebreak
 	if ((k == 0)) ;	then
 		if [ "$errorbars" ] && ((num_cols > 2));	then
-			if [ "$filled" ];	then
+			if [ -n "$filled" ];	then
 				echo "plot '$file' using 1:(\$2-\$3):(\$2+\$3) title '$leg_entry' with filledcurves, \\" >> $plot_script
 			else
 				echo "plot '$file' title '$leg_entry' with errorbars $line, \\" >> $plot_script
@@ -314,7 +317,7 @@ for file in "$@"; do
 # 	no filename, no linebreak
 	elif ((k+1 == nfiles)) ;	then
 		if [ "$errorbars" ] && ((num_cols > 2));	then
-			if [ "$filled" ];	then
+			if [ -n "$filled" ];	then
 				echo "	'$file' using 1:(\$2-\$3):(\$2+\$3) title '$leg_entry' with filledcurves" >> $plot_script
 			else
 				echo "	'$file' title '$leg_entry' with errorbars $line, \\" >> $plot_script
@@ -329,7 +332,7 @@ for file in "$@"; do
 # 	no filename, comma + linebreak
 	else
 		if [ "$errorbars" ] && ((num_cols > 2));	then
-			if [ "$filled" ];	then
+			if [ -n "$filled" ];	then
 				echo "	'$file' using 1:(\$2-\$3):(\$2+\$3) title '$leg_entry' with filledcurves, \\" >> $plot_script
 			else
 				echo "	'$file' title '$leg_entry' with errorbars $line, \\" >> $plot_script

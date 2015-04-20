@@ -8,9 +8,9 @@
 #==================================================
 # SET OPTIONAL COMMAND-LINE ARGUMENTS
 #==================================================
-global OPT_VAR_NAMES = {"bins" "cols" "flag_norm" "flag_err" "output_format" "display_help"}; 
-global OPT_VAR_FLAGS = {"b" "c" "N" "e" "f" "h"};
-global OPT_VAR_DEFAULTS = {"100" "[]" "0" "0" "'%8.8f\t'" "false"};
+global OPT_VAR_NAMES = {"bins" "cols" "flag_pad" "flag_norm" "flag_flatten" "flag_err" "output_format" "display_help"}; 
+global OPT_VAR_FLAGS = {"b" "c" "p" "N" "F" "e" "f" "h"};
+global OPT_VAR_DEFAULTS = {"100" "[]" "false" "false" "false" "false" "'%8.8f\t'" "false"};
 global OPT_FLAG_HASARGS = {"b" "c" "f"}; 
 
 parse_opts
@@ -43,6 +43,11 @@ for k = 1:length(OPTFILES)
 	end
 
 	v = data(:,cols);
+	if (flag_flatten)
+		v = v(:);
+		ncols = 1;
+	end
+
 	[counts,bin_centres] = hist(v,bins);
 	if (ncols == 1)
 		counts = counts';
@@ -50,10 +55,12 @@ for k = 1:length(OPTFILES)
 	end
 
 	# pad the counts with zeros for better plotting
-	counts = [zeros(1,ncols); counts; zeros(1,ncols)];
-	d1 = diff(bin_centres(1:2,:));
-	d2 = diff(bin_centres(bins-1:bins,:));
-	bin_centres = [ bin_centres(1,:) - d1; bin_centres; bin_centres(bins,:) + d2 ];
+	if (flag_pad)
+		counts = [zeros(1,ncols); counts; zeros(1,ncols)];
+		d1 = diff(bin_centres(1:2,:))/2;
+		d2 = diff(bin_centres(bins-1:bins,:))/2;
+		bin_centres = [ bin_centres(1,:) - d1; bin_centres; bin_centres(bins,:) + d2 ];
+	end
 
 	if flag_norm
 		tot_counts = sum(counts);
