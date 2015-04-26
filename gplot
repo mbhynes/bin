@@ -4,7 +4,7 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Mon Jan 26 13:33:27 2015
-# Last Modified: Sun 19 Apr 2015 03:45:00 PM EDT
+# Last Modified: Thu 23 Apr 2015 05:09:45 PM EDT
 #=================================================
 
 SCRIPT_NAME=$(basename $0)
@@ -172,7 +172,7 @@ if [ -z "$linewidth" ]; then
 fi
 
 if [ -z "$terminal_size" ]; then
-	terminal_size="4,2.5"
+	terminal_size="3,2.5"
 fi
 
 if [ -z "$terminal" ] && [ -z "$header"]; then
