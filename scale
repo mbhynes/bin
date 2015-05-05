@@ -48,12 +48,12 @@ for k = 1 : length(OPTFILES)
 		if (length(constant) == ncols)
 			out(:,cols(j)) = out(:,cols(j)) * constant(j);
 		else
-			log_warn(sprintf(
-				"-a const has length %d,  but -c cols has length %d; using a(1) = %f for all cols",  
-				length(constant),
-				ncols,
-				constant(1))
-			);
+			#log_warn(sprintf(
+			#	"-a const has length %d,  but -c cols has length %d; using a(1) = %f for all cols",  
+			#	length(constant),
+			#	ncols,
+			#	constant(1))
+			#);
 			out(:,cols(j)) = out(:,cols(j)) * constant(1);
 		end
 	end
