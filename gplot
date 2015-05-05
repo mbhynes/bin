@@ -4,8 +4,21 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Mon Jan 26 13:33:27 2015
-# Last Modified: Thu 23 Apr 2015 05:09:45 PM EDT
+# Last Modified: Sat 02 May 2015 10:41:36 PM EDT
 #=================================================
+
+# set defaults
+DEFAULT_TERM="postscript eps enhanced"
+delimiter=" "
+linewidth="2"
+terminal_size="5,2.5"
+terminal=$DEFAULT_TERM
+font="Times,14,Bold" 
+xrange="autoscale x"
+yrange="autoscale y"
+
+# plotting definitions for gnuplot 
+eol="\\"
 
 SCRIPT_NAME=$(basename $0)
 msg () {
@@ -25,64 +38,140 @@ escape_tex_chars() {
 	# echo "$@" | sed -r -e 's/\\/\\\\/g; s/\$/\\$/g;'
 }
 
-# default plot header
-generate_header() {
-	cat <<EOF 
-#
-# $(date)
-#
+add_file_to_plot() { # $1=plot_prefix, $2=comma_suffix
+	if (($# == 2)); then
+		plot_arg="$1"
+		linebreak="$2"
+	elif (($# == 1)); then
+		if [[ "$1" == "plot" ]]; then
+			plot_arg="$1"
+			linebreak=""
+		else
+			plot_arg=""
+			linebreak="$1"
+		fi
+	else
+		plot_arg=""
+		linebreak=""
+	fi
+		
+	colrange=1:2
+	if [ -n "$errorbars" ];	then
+		colrange=1:2:3
+		if [ -z "$lines" ]; then
+			echo "$plot_arg '$file' using $colrange title '$leg_entry' with errorbars ls $num $linebreak"
+		else
+			echo "$plot_arg '$file' using $colrange title '$leg_entry' with errorbars ls $num, $eol"
+			echo "	'' using $colrange notitle $lines ls $num $linebreak"
+		fi
+		return
+	fi
 
-set terminal $terminal size $terminal_size color colortext font '$font' linewidth $linewidth
-set samples 500, 500
-set border linewidth $linewidth
-set style fill solid 2.70 noborder
-set style data lines
-
-set $xrange
-set $yrange
-
-# Line styles 
-set style line 1 lc rgb "#A30000" lt 1 lw $linewidth pt 13 ps 1.5
-set style line 2 lc rgb "#00A000" lt 2 lw $linewidth pt 3 ps 1.2
-set style line 3 lc rgb '#0060ad' lt 3 lw $linewidth pt 9 ps 1.5 
-set style line 4 lc rgb "#ad0060" lt 4 lw $linewidth pt 5 ps 1.2
-set style line 5 lc rgb "#F25900" lt 5 lw $linewidth pt 7 ps 1.5
-set style line 6 lc rgb '#60ad00' lt 6 lw $linewidth pt 1 ps 1.5 
-set style line 7 lc rgb '#000b1d' lt 7 lw $linewidth pt 14 ps 1.5 
-
-# Fill styles 
-set style fill border
-# set style fill solid 0.6 border
-
-# Line style for axes
-set style line 80 lt 1 lc rgb "#000000" lw $((linewidth-1))
-
-# Line style for grid
-set style line 81 lt 1 lc rgb "#808080" lw 1
-set grid back linestyle 81
-
-# Remove border on top and right.  
-set border 3 back linestyle 80 
-    
-set xtics nomirror
-set ytics nomirror
-set xtics norangelimit
-set format '%g'
-
-# logscale options
-#set mxtics 10    
-
-set datafile missing "NaN"
-set datafile separator "$delimiter"
-
-EOF
+	if [ -n "$lines" ] && [ -n "$points" ]; then
+		echo "$plot_arg '$file' using $colrange $lines title '$leg_entry' ls $num,  $eol" 
+		echo "	'' using $colrange nontitle $points ps $num $linebreak"
+	elif [ -n "$lines" ]; then
+		echo "$plot_arg '$file' using $colrange $lines title '$leg_entry' ls $num $linebreak" 
+	elif [ -n "$points" ]; then
+		echo "$plot_arg '$file' using $colrange $points title '$leg_entry' ps $num $linebreak"
+	fi
 }
 
-DEFAULT_TERM="postscript eps enhanced"
+# default plot header
+generate_header() {
+	cat <<-EOF 
+	#
+	# $(date)
+	#
 
-OPTSTRING=t:ex:y:L:h:o:P:T:f:s:w:FX:Y:d:Zz
+	set terminal $terminal size $terminal_size color colortext font '$font' linewidth $linewidth
+	set samples 500, 500
+	set border linewidth $linewidth
+	set style fill solid 2.70 noborder
+	set style data lines
+
+	set $xrange
+	set $yrange
+
+	# Line styles 
+	set style line 1 lc rgb "#A30000" lt 1 lw $linewidth pt 13 ps 1.5
+	set style line 2 lc rgb "#00A000" lt 2 lw $linewidth pt 3 ps 1.2
+	set style line 3 lc rgb '#0060ad' lt 3 lw $linewidth pt 9 ps 1.5 
+	set style line 4 lc rgb "#ad0060" lt 4 lw $linewidth pt 5 ps 1.2
+	set style line 5 lc rgb "#F25900" lt 5 lw $linewidth pt 7 ps 1.5
+	set style line 6 lc rgb '#60ad00' lt 6 lw $linewidth pt 1 ps 1.5 
+	set style line 7 lc rgb '#000b1d' lt 7 lw $linewidth pt 14 ps 1.5 
+
+	# Fill styles 
+	set style fill border
+	# set style fill solid 0.6 border
+
+	# Line style for axes
+	set style line 80 lt 1 lc rgb "#000000" lw $((linewidth-1))
+
+	# Line style for grid
+	set style line 81 lt 1 lc rgb "#808080" lw 1
+	set grid back linestyle 81
+
+	# Remove border on top and right.  
+	set border 3 back linestyle 80 
+			
+	set xtics nomirror
+	set ytics nomirror
+	set xtics norangelimit
+	set format '%g'
+
+	# logscale options
+	#set mxtics 10    
+
+	set datafile missing "NaN"
+	set datafile separator "$delimiter"
+	set output '$fout' 
+EOF
+	if [ -n "$timeformat" ]; then
+		cat <<-EOF
+			set xdata time
+			set timefmt "$timeformat"
+EOF
+	fi
+
+	# set the x,y labels, if they exist
+	if [ -n "$setlogy" ]; then
+		echo "set log y" 
+		echo 'set format y "10^{%L}"' 
+	fi 
+	if [ -n "$setlogx" ]; then
+		echo "set log x" 
+		echo 'set format x "10^{%L}"' 
+	fi
+	if [ "$x_label" ]; then
+		echo "set xlabel '$(escape_tex_chars $x_label)'" 
+	fi
+	if [ "$y_label" ]; then
+		echo "set ylabel '$(escape_tex_chars $y_label)'"
+	fi
+
+	# set the legend, if it exists
+	# leg_pos allows position info to be entered; it may be empty
+	if [ "$legend" ]; then
+		echo "set key $leg_pos reverse enhanced autotitle" 
+	else
+		echo "set key off" 
+	fi
+}
+
+OPTSTRING=plc:t:ex:y:L:h:o:P:T:f:s:w:FX:Y:d:Zz
 while getopts $OPTSTRING opt; do
 	case $opt in
+		l)
+			lines="with lines"
+			;;
+		p)
+			points="with points"
+			;;
+		c)
+			num_cols="$OPTARG"
+			;;
 		d)
 			delimiter="$OPTARG"
 			;;
@@ -91,9 +180,19 @@ while getopts $OPTSTRING opt; do
 			;;
 		X)
 			xrange="$OPTARG"
+			if [[ "${xrange:0:1}" != '[' ]]; then
+				xrange="xrange [$xrange]"
+			else
+				xrange="xrange $xrange"
+			fi
 			;;
 		Y)
 			yrange="$OPTARG"
+			if [[ "${yrange:0:1}" != '[' ]]; then
+				yrange="yrange [$yrange]"
+			else
+				yrange="yrange $yrange"
+			fi
 			;;
 		F)
 			filled="true"
@@ -151,7 +250,6 @@ shift $((OPTIND - 1))
 
 nfiles=$#
 if ((nfiles == 0)); then
-	echo usage: $0 -o fout "[opts]" fin1 fin2 ...
 	disp_opts -h -n 10 $0 2>/dev/null
 	exit 1
 fi
@@ -161,47 +259,10 @@ if [ -z "$fout" ]; then
 	exit 1
 fi
 
-if [ -z "$delimiter" ]; then
-	delimiter=" "
-	warn "-d delimiter unspecified; using \"$delimiter\""
-fi
 
-# check if variables are set; else set defaults
-if [ -z "$linewidth" ]; then
-	linewidth=2
-fi
-
-if [ -z "$terminal_size" ]; then
-	terminal_size="3,2.5"
-fi
-
-if [ -z "$terminal" ] && [ -z "$header"]; then
-	terminal=$DEFAULT_TERM
-fi
-
-if [ -z "$font" ]; then
-	font="Times,16,Bold" 
-	font="Verdana,14,Bold" 
-fi
-
-if [ -z "$xrange" ]; then
-	xrange="autoscale x"
-else
-	if [[ "${xrange:0:1}" != '[' ]]; then
-		xrange="xrange [$xrange]"
-	else
-		xrange="xrange $xrange"
-	fi
-fi
-
-if [ -z "$yrange" ]; then
-	yrange="autoscale y"
-else
-	if [[ "${yrange:0:1}" != '[' ]]; then
-		yrange="yrange [$yrange]"
-	else
-		yrange="yrange $yrange"
-	fi
+# set default plot to be with points
+if [ -z "$lines" ] && [ -z "$points" ]; then
+	points="with points"
 fi
 
 # generate script to pass to gnuplot
@@ -209,62 +270,25 @@ plot_script=$(mktemp)
 
 # write header to script
 if [ -r "$header" ]; then
-	cat $header > $plot_script
+	cat $header 
 else
-
-	# change output filetype to default .tex
-	# if [[ "$terminal" == "$DEFAULT_TERM" ]]
-	# then
-	# 	fout_ext=$(ext $fout)
-	# 	fout_prefix=$(basename $fout $fout_ext)
-	# 	fout=$fout_prefix.tex
-	# fi
-
-	generate_header > $plot_script
-	if [ -n "$timeformat" ]; then
-		cat >> $plot_script <<EOF
-set xdata time
-set timefmt "$timeformat"
-EOF
-	fi
-fi
-
-# set the x,y labels, if they exist
-if [ -n "$setlogy" ]; then
-	echo "set log y" >> "$plot_script"
-	echo 'set format y "10^{%L}"' >> "$plot_script"
-fi
-if [ -n "$setlogx" ]; then
-	echo "set log x" >> "$plot_script"
-	echo 'set format x "10^{%L}"' >> "$plot_script"
-fi
-if [ "$x_label" ]; then
-	echo "set xlabel '$(escape_tex_chars $x_label)'" >> $plot_script
-fi
-if [ "$y_label" ]; then
-	echo "set ylabel '$(escape_tex_chars $y_label)'" >> $plot_script
-fi
-
-# set the legend, if it exists
-# leg_pos allows position info to be entered; it may be empty
-if [ "$legend" ]; then
-	echo "set key $leg_pos reverse enhanced autotitle nobox" >> $plot_script
-else
-	echo "set key off" >> $plot_script
-fi
-
-# set output file
-echo "set output '$fout'" >> $plot_script
+	generate_header 
+fi > $plot_script
 
 # =============================================
 # plot files
 # =============================================
 k=0
 for file in "$@"; do
-	num_cols=$(ncols -d "$delimiter" $file)
+
+	# count cols if unspecified;
+	# WARNING: cannot use process substitution if -c <num_cols> is not given 
+	if [ -z "$num_cols" ]; then
+		num_cols=$(ncols -d "$delimiter" $file)
+	fi
 
 	if ((num_cols == 1)); then
-		echo "WARNING: $file contains only $num_cols columns---skipping" 1>&2
+		warn "$file contains only $num_cols columns---skipping"
 		continue
 	fi
 
@@ -273,80 +297,33 @@ for file in "$@"; do
 	else
 		leg_entry="$( escape_tex_chars ${legend[k]} )"
 	fi
-	echo Adding "$leg_entry" to plot
-
-# =============================================
-# plotting is divided into sections: 
-# 	multiple plots require linebreaks + commas
+	# msg "Adding $leg_entry to plot"
 
 	num=$((k+1))
 	line="ls $num"
 
-# =============================================
-# check if only 1 file is given:
-	if (($# == 1)) ; then
-		if [ "$errorbars" ] && ((num_cols > 2));	then
-			if [ -n "$filled" ];	then
-				echo "plot '$file' using 1:(\$2-\$3):(\$2+\$3) title '$leg_entry' with filledcurves \\" >> $plot_script
-			else
-				echo "plot '$file' title '$leg_entry' with errorbars $line, \\" >> $plot_script
-				echo "	'' using 1:2 notitle with lines ls $num \\" >> $plot_script
-			fi
-		else
-			echo "plot '$file' using 1:2 title '$leg_entry' $line \\" >> $plot_script
-		fi
+	# check if only 1 file is given: preceding plot; no trailing comma
+	if ((nfiles == 1)) ; then
+		add_file_to_plot "plot" 
 		continue
 	fi
 
-# =============================================
-# first plot command; use filename, follow with comma and linebreak
+	# first plot command; preceding 'plot', followed by comma
 	if ((k == 0)) ;	then
-		if [ "$errorbars" ] && ((num_cols > 2));	then
-			if [ -n "$filled" ];	then
-				echo "plot '$file' using 1:(\$2-\$3):(\$2+\$3) title '$leg_entry' with filledcurves, \\" >> $plot_script
-			else
-				echo "plot '$file' title '$leg_entry' with errorbars $line, \\" >> $plot_script
-				echo "	'' using 1:2 notitle with lines ls $num, \\" >> $plot_script
-			fi
-		else
-			echo "plot '$file' using 1:2 title '$leg_entry' $line, \\" >> $plot_script
-		fi
+		add_file_to_plot "plot" ",$eol"
 
-# =============================================
-# last plot command:
-# 	no filename, no linebreak
-	elif ((k+1 == nfiles)) ;	then
-		if [ "$errorbars" ] && ((num_cols > 2));	then
-			if [ -n "$filled" ];	then
-				echo "	'$file' using 1:(\$2-\$3):(\$2+\$3) title '$leg_entry' with filledcurves" >> $plot_script
-			else
-				echo "	'$file' title '$leg_entry' with errorbars $line, \\" >> $plot_script
-				echo "	'' using 1:2 notitle with lines ls $num" >> $plot_script
-			fi
-		else
-			echo "	'$file' using 1:2 title '$leg_entry' $line" >> $plot_script
-		fi
+	# last plot command;	no preceding 'plot', no comma
+	elif ((k+1 == nfiles));	then
+		add_file_to_plot
 
-# =============================================
-# middle plot commands
-# 	no filename, comma + linebreak
+	# middle plot commands; no plot, followed by comma
 	else
-		if [ "$errorbars" ] && ((num_cols > 2));	then
-			if [ -n "$filled" ];	then
-				echo "	'$file' using 1:(\$2-\$3):(\$2+\$3) title '$leg_entry' with filledcurves, \\" >> $plot_script
-			else
-				echo "	'$file' title '$leg_entry' with errorbars $line, \\" >> $plot_script
-				echo "	'' using 1:2 notitle with lines ls $num, \\" >> $plot_script
-			fi
-		else
-			echo "	'$file' using 1:2 title '$leg_entry' $line, \\" >> $plot_script
-		fi
+		add_file_to_plot ",$eol"
 	fi
 
 	((k++))
-done
+done >> $plot_script
 
-# echo "replot" >> $plot_script
 cat $plot_script
 gnuplot $plot_script
 rm $plot_script
