@@ -147,7 +147,7 @@ done
 shift $((OPTIND - 1))
 
 if [ -z "$JOURNAL_DIR" ]; then
-	JOURNAL_DIR=~/journal
+	JOURNAL_DIR=$HOME/journal
 fi
 
 if [ ! -d "$JOURNAL_DIR" ]; then
@@ -232,4 +232,4 @@ else
 	warn "footer=$FOOTER is not readable"
 fi
 
-[ -n "$RUN_PDFLATEX_FLAG" ] && compile $FOUT
+[ -n "$RUN_PDFLATEX_FLAG" ] && cd $JOURNAL_DIR; compile $FOUT; exit 
