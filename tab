@@ -8,11 +8,12 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Tue 17 Feb 2015 11:05:54 AM EST
-# Last Modified: Sun 17 May 2015 10:30:27 AM EDT
+# Last Modified: Tue 26 May 2015 10:04:15 PM EDT
 # =================================================
 
 DEFAULT_COLSPEC=c
 HLINE='\\hline'
+COLSPEC='c'
 EOL='\\\\'
 header=""
 delim=""

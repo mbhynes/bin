@@ -14,7 +14,7 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Tue 17 Feb 2015 11:03:02 PM EST
-# Last Modified: Tue 14 Apr 2015 03:48:33 PM EDT
+# Last Modified: Fri 08 May 2015 10:10:15 AM EDT
 # =================================================
 
 date_format='%y.%m.%d'
@@ -52,7 +52,7 @@ new_dirname ()
 
 	k=1
 	n=$(prepend_zeros $k)
-	while [ -d "$name$n" ]
+	while [ -d "$name$n" ] || [ -f "$name$n" ]
 	do
 		((k++))
 		n=$(prepend_zeros $k)
