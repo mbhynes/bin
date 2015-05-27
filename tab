@@ -8,11 +8,11 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Tue 17 Feb 2015 11:05:54 AM EST
-# Last Modified: Fri 17 Apr 2015 06:19:52 PM EDT
+# Last Modified: Sun 17 May 2015 10:30:27 AM EDT
 # =================================================
 
-HLINE='\\\hline'
-COLSPEC='c'
+DEFAULT_COLSPEC=c
+HLINE='\\hline'
 EOL='\\\\'
 header=""
 delim=""
@@ -30,14 +30,21 @@ error () {
 	msg ERROR: $@
 }
 insert_lines() {
-	for k in $(seq 1 "$nlines"); do
-		echo "${HLINE:2:10}"
-	done
+	# insert line after header
+	echo '3ihline'
+	# insert nlines at top
+	printf '2i'
+	printf 'hline%.0s' $(seq 1 $nlines)
+	echo
+	# insert nlines at the bottom
+	printf '$i'
+	printf 'hline%.0s' $(seq 1 $nlines)
+	echo
 }
 insert_header() {
 	cat <<EOF
 1i$header
-1i$HLINE
+# 1i$HLINE
 EOF
 }
 table_script() {
@@ -47,6 +54,7 @@ s/\#/\\#/g
 s/$delim/\&\t/g
 s/$/$EOL/
 # s/\\\$/\\\\\$/
+s/^\\hline$EOL$/\\hline/
 EOF
 }
 begin_table() {
@@ -57,18 +65,19 @@ end_table() {
 }
 convert_to_tex() {
 	begin_table
-	insert_lines
+	# insert_lines
 	sed -f <(insert_header) "$1" \
-		| sed -f <(table_script) 
-	insert_lines
+		| sed -f <(table_script) \
+		# | insert_lines
+		# | sed -f <(insert_lines)
 	end_table
 }
 default_colspec() {
 	# warning! this will not work on substituted processes
 	if [ -z "$num_cols" ]; then
-		num_cols=$(head -n 1 "$1" | grep -o "$delim" | wc -l)
+		num_cols=$(ncols -d "$delim" "$@")
 	fi
-	yes "$COLSPEC" | head -n $((num_cols+1)) | tr -d '\n' 
+	yes "$DEFAULT_COLSPEC" | head -n $((num_cols+1)) | tr -d '\n' 
 }
 
 example_file() {
@@ -151,5 +160,10 @@ for file in "$@"; do
 	else
 		current_colspec="$colspec"
 	fi
-	convert_to_tex "$file"
+	# this is a bit messy, but w/e
+	# because of all the escapes '\'
+	convert_to_tex "$file" \
+		| sed -f <(insert_lines) \
+		| sed -e 's/hline/\\hline/g'
+		
 done

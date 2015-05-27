@@ -71,11 +71,13 @@ EOF_SED
 }
 
 section_string() { #string 
-	echo "\\section*{$1}"
+	echo "\\section*{$@}"
 }
 
 print_entry_name() { 
-	basename "$1" .tex
+	timestamp=$(basename "$1" .tex | tr '.' '/')
+	daynum=$(date '+%j' -d $timestamp)
+	echo "Day ${daynum//0}: $(date '+%b %e, %Y' -d $timestamp)"
 }
 
 cat_uncommented_lines() {
