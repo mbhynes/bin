@@ -24,7 +24,6 @@
 # To compile all the entries with pdflatex, specify -L, and
 # provide years/months.
 #
-#
 # =================================================
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
@@ -64,7 +63,6 @@ expand_macros()  #file
 	_sep=3cm
 	_space="\\\\hspace{$_sep}"
 	_dots="\*$_space\*$_space\*$_space"
-	# sed -i -e 's/^x$/\\begin{center} *\\hspace{3cm}*\\hspace{3cm}*\\end{center}/g' $1
 	sed -i -f - $1 <<EOF_SED 
 s/^x$/\\\\begin{center}$_dots\\\\end{center}/g 
 EOF_SED
@@ -77,7 +75,8 @@ section_string() { #string
 print_entry_name() { 
 	timestamp=$(basename "$1" .tex | tr '.' '/')
 	daynum=$(date '+%j' -d $timestamp)
-	echo "Day ${daynum//0}: $(date '+%b %e, %Y' -d $timestamp)"
+	msg "$timestamp => ${daynum##0}"
+	echo "Day ${daynum##0}: $(date '+%b %e, %Y' -d $timestamp)"
 }
 
 cat_uncommented_lines() {
@@ -107,7 +106,9 @@ compile() # /full/path/to/file
 files_from_year() # year
 {
 	year=$1
-	find $JOURNAL_DIR -regextype $REGEX -regex ".*/$year/.*/$PATTERN" \
+	find $JOURNAL_DIR \
+		-regextype $REGEX \
+		-regex ".*/$year/.*/$PATTERN" \
 		| sort -d
 }
 
@@ -209,7 +210,7 @@ while (($# > 0)); do
 	# match months with 2 numbers: 02
 	elif echo "$1" | egrep -wq [0-9]{2}; then
 		month=$1
-		tot_files="$tot_files $(echo $year_files | tr ' ' '\n' | egrep "/$year/$month/")"
+		tot_files="$tot_files $(tr ' ' '\n' <<<$year_files | egrep "/$year/$month/")"
 	fi
 
 	shift
