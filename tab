@@ -8,9 +8,10 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Tue 17 Feb 2015 11:05:54 AM EST
-# Last Modified: Thu 14 May 2015 06:00:42 PM EDT
+# Last Modified: Tue 26 May 2015 10:04:15 PM EDT
 # =================================================
 
+DEFAULT_COLSPEC=c
 HLINE='\\hline'
 COLSPEC='c'
 EOL='\\\\'
@@ -75,9 +76,9 @@ convert_to_tex() {
 default_colspec() {
 	# warning! this will not work on substituted processes
 	if [ -z "$num_cols" ]; then
-		num_cols=$(head -n 1 "$1" | grep -o "$delim" | wc -l)
+		num_cols=$(ncols -d "$delim" "$@")
 	fi
-	yes "$COLSPEC" | head -n $((num_cols+1)) | tr -d '\n' 
+	yes "$DEFAULT_COLSPEC" | head -n $((num_cols+1)) | tr -d '\n' 
 }
 
 example_file() {

@@ -1,0 +1,133 @@
+#!/bin/bash
+#
+# gothru
+#
+# Iterate over the given files, show a brief pager message,
+# and then prompt the user for what to do.
+#
+# A command may be given that will be executed if desired
+# on the files, with identical syntax to find -exec "cmd {} \;"
+#
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Wed 13 May 2015 11:45:32 AM EDT
+# Last Modified: Wed 13 May 2015 02:03:56 PM EDT
+# =================================================
+
+dry_run=""
+cmd=""
+num_lines=5
+
+SCRIPT_NAME=$(basename $0)
+msg () {
+	echo "$SCRIPT_NAME: $@" 1>&2
+}
+warn () {
+	msg WARNING: $@
+}
+error () {
+	msg ERROR: $@
+}
+
+get_handler() {
+	filetype=$(ext "$1")
+	case "$filetype" in
+		.pdf|.eps)
+			which zathura
+			;;
+		.png|.jpg)
+			which sxiv
+			;;
+		.fig)
+			which xfig
+			;;
+		*)
+			which less
+			;;
+	esac
+}
+
+prompt_action() {
+
+	select action in "run: $cmd" "do nothing"; do
+		echo "$action"
+		break
+	done
+}
+
+optstring="c:nN:"
+while getopts "$optstring" opt; do
+	case "$opt" in
+		c)
+			cmd="$OPTARG"
+			;;
+		n)
+			dry_run="true"
+			;;
+		N)
+			num_lines="$OPTARG"
+			;;
+		:)
+			error "-$opt requires argument" 
+			;; 
+		?)
+			error invalid option
+			;; 
+	esac
+done
+shift $((OPTIND - 1))
+
+if [ -z "$cmd" ]; then
+	msg "No -c <command> specified."
+	exit 0
+fi
+
+if ! grep -q '{}' <<<"$cmd"; then
+	msg "No {} specified in command; appending it."
+	cmd="$cmd {}"
+fi
+
+nfiles=$#
+if ((!nfiles)); then
+	disp_opts -h -n 10 $0 2>/dev/null;
+	exit
+fi
+
+flags=($(seq 1 $nfiles))
+for file in $@; do
+	echo "Viewing: $file"
+	_handler=$(get_handler "$file")
+	sleep 0.75
+	$_handler "$file"
+	flags[$k]=$(prompt_action)
+	clear
+done
+
+read -a files <<<$@
+files_to_exec=""
+echo Executing "$cmd" on the following files:
+for k in $(seq -s ' ' 0 $((nfiles - 1)) ); do
+	if grep -q run <<<"${flags[$k]}"; then
+		files_to_exec="$files_to_exec ${files[$k]}"
+		echo ${files[$k]}
+	fi
+done
+if [ -z "$files_to_exec" ]; then
+	echo "No files specified."
+	exit 0
+fi
+echo "Is this correct? (y/n)"
+echo -n ">>> "
+read confirm 
+if [[ "$confirm" != "y" ]]; then
+	echo "y not specified; exiting."
+	exit 0
+fi
+
+if [ -z "$dry_run" ]; then
+	find $files_to_exec -exec $cmd \;
+else
+	echo "find $files_to_exec -exec $cmd \;"
+	echo "(DRY RUN)"
+fi
