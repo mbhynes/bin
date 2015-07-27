@@ -1,0 +1,78 @@
+#!/bin/bash
+#
+# pdfcode [-d] <file1 file2 ...>
+#
+# Creates a pdf version of the given srcfiles using latex listings.
+#
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Sun 26 Jul 2015 09:13:03 PM EDT
+# Last Modified: Sun 26 Jul 2015 09:27:02 PM EDT
+# =================================================
+
+. latex_header
+
+SCRIPT_NAME=$(basename $0)
+msg () {
+	echo "$SCRIPT_NAME: $@" 1>&2
+}
+warn () {
+	msg WARNING: $@
+}
+error () {
+	msg ERROR: $@
+}
+make_main() { f="$1";
+	preamble
+	begin_document
+
+	ftype=$(ext $f)
+	if [ -z "$ftype" ]; then
+		ftype=bash
+	fi
+
+	if [[ "$ftype" == .scala ]]; then
+		ftype=java
+	fi
+
+	code $f ${ftype##.}
+	end_document
+}
+
+compile() { f="$1";
+	pdflatex "$f"
+	pdflatex "$f"
+}
+
+optstring="d"
+while getopts "$optstring" opt; do
+	case "$opt" in
+		d)
+			dry_run=true
+			;;
+		:)
+			error "-$opt requires argument" 
+			;; 
+		?)
+			error invalid option
+			;; 
+	esac
+done
+shift $((OPTIND - 1))
+
+for fin in $@; do
+	fout=$(mktemp)
+	if [ -n "$dry_run" ]; then
+		make_main "$fin"
+		continue
+	fi
+	make_main "$fin" > "$fout".tex
+	compile "$fout" 1>&2
+	rm $(basename $fout).{out,log,tex,aux}
+
+	extension=$(ext $fin)
+	base=$(basename $fin $extension)
+	msg "Writing code file to $base.pdf"
+	mv $(basename $fout).pdf $base.pdf
+done

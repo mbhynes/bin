@@ -1,10 +1,54 @@
 #!/bin/bash
 #
-# lsown [dir1 dir2 ...]
+# lsown [-u <user>] [-v] [dir1 dir2 ...]
 #
-# List files belonging to $USER in the given directories
-# This script is slow and dumb. It's just to supprss warning
-# messages when deleting files from /tmp on a shared env.
+# List files belonging to <user> in the given directories, ($USER by default)
+# Passing the -v (inversion) flag lists the files not belonging to <user>
+# ==========================================================================
+
+SCRIPT_NAME=$(basename $0)
+msg () {
+	echo "$SCRIPT_NAME: $@" 1>&2
+}
+warn () {
+	msg WARNING: $@
+}
+error () {
+	msg ERROR: $@
+}
+
+printfiles() {
+	path="$@"
+	ls -oad "$path"/* \
+		| grep $invert_flag "$username" \
+		| sed -r -e 's/.* (\/.*)/\1/'
+}
+
+optstring="pu:hv"
+while getopts "$optstring" opt; do
+	case "$opt" in
+		p)
+			ignore_pids="true"
+			;;
+		u)
+			username="${OPTARG/\\/\\\\\\}"
+			;;
+		h)
+			disp_opts -h $0 2>/dev/null
+			exit 0
+			;;
+		v)
+			invert_flag="-v"
+			;;
+		:)
+			error "-$opt requires argument" 
+			;; 
+		?)
+			error invalid option
+			;; 
+	esac
+done
+shift $((OPTIND - 1))
 
 if [ "$#" -eq 0 ]; then
 	DIRS="$PWD"
@@ -12,28 +56,18 @@ else
 	DIRS="$@"
 fi
 
-print_file_owner()
-{
-	file="$1"
-	ls -oad "$file" \
-		| cut -d " " -f3
-}
-
-ls_user_files() # -dir
-{
-	dir=$1
-	IFS=$'\n'
-	delim=' '
-	for file in $(ls $dir/); do
-		if grep -q "$USER" <<< $(print_file_owner $dir/$file); then
-			echo "$dir/$file"
-		fi
-	done
-}
+# escape HIMROD-DOMAIN\ slashes
+if [ -z "$username" ]; then
+	username=${USER/\\/\\\\\\}
+fi
 
 for d in $DIRS; do
 	if [ -d "$d" ]; then
-		ls_user_files "$d"
+		if [ -n "$ignore_pids" ]; then
+			printfiles $d | grep -v '.*\.pid'
+		else
+			printfiles $d
+		fi
 	fi
 done
 
