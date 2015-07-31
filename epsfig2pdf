@@ -5,7 +5,7 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Tue 28 Jul 2015 10:41:26 PM EDT
-# Last Modified: Tue 28 Jul 2015 10:54:52 PM EDT
+# Last Modified: Fri 31 Jul 2015 12:17:44 PM EDT
 # =================================================
 . latex_header
 
@@ -22,6 +22,9 @@ make_main() { f=$1;
 		ftype=java
 	fi
 
+	if [ ! -f "$f" ]; then
+		error "$f is not a valid file!"
+	fi
 	epstexfigure $f "$caption"
 	end_document
 }
