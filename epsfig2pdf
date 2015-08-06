@@ -5,30 +5,26 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Tue 28 Jul 2015 10:41:26 PM EDT
-# Last Modified: Tue 28 Jul 2015 10:54:52 PM EDT
+# Last Modified: Thu 06 Aug 2015 11:30:15 AM EDT
 # =================================================
 . latex_header
 
 make_main() { f=$1;
 	preamble
 	begin_document
-
-	ftype=$(ext $f)
-	if [ -z "$ftype" ]; then
-		ftype=bash
-	fi
-
-	if [[ "$ftype" == .scala ]]; then
-		ftype=java
-	fi
-
 	epstexfigure $f "$caption"
 	end_document
 }
 
 compile() { f="$1";
-	pdflatex "$f"
-	pdflatex "$f"
+	msg "compiling $f"
+	if [ -n "$VERBOSE" ]; then
+		pdflatex "$f" 2>&1
+		pdflatex "$f" 2>&1
+	else
+		pdflatex "$f" 2>&1 >/dev/null
+		pdflatex "$f" 2>&1 >/dev/null
+	fi
 }
 
 SCRIPT_NAME=$(basename $0)
@@ -61,18 +57,24 @@ while getopts "$optstring" opt; do
 done
 shift $((OPTIND - 1))
 
+if (($# == 0)); then
+	disp_opts -n 10 -h $0 2>/dev/null
+	exit 0
+fi
+
 for fin in $@; do
-	fout=$(mktemp)
+	fout=$(basename $(mktemp -d)).tex
 	if [ -n "$dry_run" ]; then
+		msg "DRY RUN: adding $fin to tex file $fout"
 		make_main "$fin"
 		continue
 	fi
-	make_main "$fin" > "$fout".tex
-	compile "$fout" 1>&2
-	rm "$fout" $(basename $fout).{out,log,aux}
+	make_main "$fin" > "$fout"
+	compile "$fout"
 
 	extension=$(ext $fin)
 	base=$(basename $fin $extension)
-	msg "Writing code file to $base.pdf"
-	mv $(basename $fout).pdf $base.pdf
+	msg "Writing $fout to $base.pdf"
+	mv $(basename $fout .tex).pdf $base.pdf
+	rm "$fout" $(basename $fout .tex).{out,log,aux}
 done

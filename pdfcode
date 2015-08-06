@@ -8,7 +8,7 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Sun 26 Jul 2015 09:13:03 PM EDT
-# Last Modified: Tue 28 Jul 2015 10:55:32 PM EDT
+# Last Modified: Thu 06 Aug 2015 11:47:41 AM EDT
 # =================================================
 
 . latex_header
@@ -26,17 +26,19 @@ error () {
 make_main() { f="$1";
 	preamble
 	begin_document
-
-	ftype=$(ext $f)
-	if [ -z "$ftype" ]; then
-		ftype=bash
-	fi
-
-	if [[ "$ftype" == .scala ]]; then
-		ftype=java
-	fi
-
-	code $f ${ftype##.}
+	geometry 1cm 2cm 2cm 2cm 2cm
+	case "$(ext $f)" in
+		.scala)
+			language=java
+			;;
+		.m)
+			language=matlab
+			;;
+		*)
+			ftype=bash
+			;;
+	esac
+	code $f $language
 	end_document
 }
 
