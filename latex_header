@@ -153,7 +153,7 @@ EOF
 
 epstexfigure() { file=$1; shift; caption=$(tr '_' ' ' <<<$@);
 	ftype=$(ext $file)
-	if [ -z "$ext" ]; then
+	if [ -z "$ftype" ]; then
 		file=$file.tex
 	fi
 

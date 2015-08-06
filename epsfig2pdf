@@ -5,13 +5,16 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Tue 28 Jul 2015 10:41:26 PM EDT
-# Last Modified: Thu 06 Aug 2015 11:30:15 AM EDT
+# Last Modified: Thu 06 Aug 2015 12:00:29 PM EDT
 # =================================================
 . latex_header
 
 make_main() { f=$1;
 	preamble
 	begin_document
+	if [ ! -r "$f" ]; then
+		error "$f is not a valid file!"
+	fi
 	epstexfigure $f "$caption"
 	end_document
 }
@@ -63,6 +66,7 @@ if (($# == 0)); then
 fi
 
 for fin in $@; do
+	msg "Processing $fin"
 	fout=$(basename $(mktemp -d)).tex
 	if [ -n "$dry_run" ]; then
 		msg "DRY RUN: adding $fin to tex file $fout"
