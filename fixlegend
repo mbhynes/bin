@@ -1,0 +1,95 @@
+#!/bin/bash
+#
+# fixlegend -L "entry1 entry2 ..." [-i]nplace flag [-t fontsize] <file1 file2 ...>
+#
+# Fix the legend text that GNU Octave generates via print -depslatex.
+#
+# Examples:
+# 	fixlegend -L "PR LS SD" -t '\\small' out.tex
+#			=> makes all legend text small, outputs a new file to stdout
+#
+# 	fixlegend -i -L "PR LS SD" -t '\\small' out.tex
+#			=> makes all legend text small but overrites out.tex in place
+#
+# The legend entries are made with the following format in each line:
+# \put(982,4953){\makebox(0,0)[r]{\strut{}ENTRY_TEXT}}%
+#
+# This script will change the above into:
+# \put(982,4953){\makebox(0,0)[r]{\fontsize ENTRY_TEXT}}%
+#
+# An example fontsize is: -t '\\tiny \\bf'
+# Note that the double backslashes are needed to escape the escape sequences in a
+# sed s/../../ pattern.
+#
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Fri 21 Aug 2015 11:27:35 AM EDT
+# Last Modified: Fri 21 Aug 2015 12:08:43 PM EDT
+# =================================================
+
+textsize='\\footnotesize'
+INT='[[:digit:]]+'
+PUT='\\put\([[:digit:]]+,[[:digit:]]+\)'
+BOX='\\makebox\([[:digit:]]+,[[:digit:]]+\)'
+RLOC='\[r\]'
+STRUT='\\strut\{\}'
+_s_='[[:space:]]*'
+
+SCRIPT_NAME=$(basename $0)
+msg () {
+	echo "$SCRIPT_NAME: $@" 1>&2
+}
+warn () {
+	msg WARNING: $@
+}
+error () {
+	msg ERROR: $@
+}
+
+prepend_slash() { str="$1";
+	if [[ "${str:0:1}" != '\' ]]; then
+		echo '\\'$1
+	else
+		echo $1
+	fi
+}
+
+sed_script() {
+	for e in ${entries[@]}; do
+		if [ -n "$keep_strut" ]; then
+		cat <<eof
+			s/($_s_$PUT\{$BOX$RLOC\{$STRUT)(.*$e.*)\}\}/\1 $textsize \2}}/
+eof
+		else
+		cat <<eof
+			s/($_s_$PUT\{$BOX$RLOC)\{$STRUT(.*$e.*)\}\}/\1{$textsize \2}}/
+eof
+		fi
+	done
+}
+fix_legend() { f="$@";
+	sed $inplace -r -f <(sed_script) "$f"
+}
+
+optstring="sL:t:i"
+while getopts "$optstring" opt; do
+	case "$opt" in
+		s) keep_strut="true" ;;
+		i) inplace="-i" ;;
+		L) read -a entries <<< "$OPTARG" ;;
+		t) textsize=$(prepend_slash "$OPTARG") ;;
+		:) error "-$opt requires argument" ;;
+		?) error invalid option ;;
+	esac
+done
+shift $((OPTIND - 1))
+
+if (($# == 0)); then
+	disp_opts -h -n 30 $0 2>/dev/null
+	exit 0
+fi
+
+for fin in $@; do
+	fix_legend "$fin"
+done
