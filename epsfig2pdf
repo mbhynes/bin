@@ -5,9 +5,11 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Tue 28 Jul 2015 10:41:26 PM EDT
-# Last Modified: Thu 06 Aug 2015 12:00:29 PM EDT
+# Last Modified: Fri 21 Aug 2015 11:21:44 AM EDT
 # =================================================
 . latex_header
+
+TEXFLAGS="-file-line-error -interaction nonstopmode -shell-escape"
 
 make_main() { f=$1;
 	preamble
@@ -25,8 +27,8 @@ compile() { f="$1";
 		pdflatex "$f" 2>&1
 		pdflatex "$f" 2>&1
 	else
-		pdflatex "$f" 2>&1 >/dev/null
-		pdflatex "$f" 2>&1 >/dev/null
+		pdflatex $TEXFLAGS "$f" 2>&1 >/dev/null
+		pdflatex $TEXFLAGS "$f" 2>&1 >/dev/null
 	fi
 }
 
@@ -41,9 +43,12 @@ error () {
 	msg ERROR: $@
 }
 
-optstring="t:d"
+optstring="t:dv"
 while getopts "$optstring" opt; do
 	case "$opt" in
+		v)
+			VERBOSE="TRUE"
+			;;
 		t)
 			caption="$OPTARG"
 			;;
@@ -67,6 +72,21 @@ fi
 
 for fin in $@; do
 	msg "Processing $fin"
+	extension=$(ext $fin)
+	base=$(basename $fin $extension)
+
+	# delete the converted eps-pdf file, if it exists
+	fpdf="$base-eps-converted-to.pdf"
+	if [ -f "$fpdf" ]; then
+		msg "Deleting existent $fpdf"
+		rm "$fpdf"
+	fi
+	fpdf="$base.pdf"
+	if [ -f "$fpdf" ]; then
+		msg "Deleting existent $fpdf"
+		rm "$fpdf"
+	fi
+
 	fout=$(basename $(mktemp -d)).tex
 	if [ -n "$dry_run" ]; then
 		msg "DRY RUN: adding $fin to tex file $fout"
@@ -76,8 +96,6 @@ for fin in $@; do
 	make_main "$fin" > "$fout"
 	compile "$fout"
 
-	extension=$(ext $fin)
-	base=$(basename $fin $extension)
 	msg "Writing $fout to $base.pdf"
 	mv $(basename $fout .tex).pdf $base.pdf
 	rm "$fout" $(basename $fout .tex).{out,log,aux}
