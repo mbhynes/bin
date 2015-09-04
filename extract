@@ -104,6 +104,7 @@ process_lbfgs_file() { fin="$1";
 	# but it's not my fault that no trace info is printed,
 	# so fuck you.
 	for f in $fvals; do
+		msg "Looking for $f in $log_output"
 		grep -m 1 "$f" "$log_output"
 	done
 }
