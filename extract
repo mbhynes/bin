@@ -83,14 +83,13 @@ filter_lines() { fin="$1";
 }
 process_lbfgs_file() { fin="$1";
 	log_output=$(mktemp)
-	soln_output=$(mktemp)
 	if [ $? -gt 0 ]; then
 		error "Could not create tmpfile for lbfgs output."
 		return
 	fi
 	# filter lines normally
 	filter_lines "$fin" \
-		| cut -f "$columns" -d "$delim" \
+		| cut -f "1,3,4" -d "$delim" \
 		> "$log_output"
 
 	# get the output from the bottom of the file with the actual iterations
@@ -98,20 +97,26 @@ process_lbfgs_file() { fin="$1";
 	fvals=$(grep -E "$regex" "$fin" \
 		| cut -d: -f5 \
 		)
-	msg "Read $fvals"
 
 	# this is the ugliest, most inefficient shit ever,
 	# but it's not my fault that no trace info is printed,
 	# so fuck you.
 	for f in $fvals; do
-		msg "Looking for $f in $log_output"
 		grep -m 1 "$f" "$log_output"
 	done
+
+	nfvals=$(grep -c -E "$regex" "$fin")
+	nfcalls=$(wc -l < "$log_output")
+	msg "$fin: $nfvals: $nfcalls"
+	rm "$log_output"
 }
 
-optstring="c:p:n:"
+optstring="fc:p:n:"
 while getopts "$optstring" opt; do
 	case "$opt" in
+		f) 
+			fix_traces="true"
+			;;
 		d)
 			delim="$OPTARG"
 			_delim_="$__$OPTARG$__"
@@ -166,7 +171,7 @@ for log in $@; do
 	# ugly little hack for LBFGS, which doesn't print
 	# iters, and currently mangles trace output with
 	# line search output.
-	if [[ "$pattern" == LBFGS ]]; then
+	if [ -n "$fix_traces" ]; then
 		process_lbfgs_file "$log"
 	else
 		filter_lines "$log" \
