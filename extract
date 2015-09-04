@@ -1,0 +1,174 @@
+#!/bin/bash
+#
+# extract -p <pattern> -d <delimiter> -n <num_numeric_fields> <log>
+# 
+# Simple log extractor script to parse convergence trace information
+# from stdout log files from Spark programs.
+#
+# Log files are assumed to have the structure:
+# 	[T]: <pattern>: [N]: [N]: ... : [N]
+# where:
+#		[T] is a timestamp with regex [0-9]+,
+#		<pattern> is a user-specified string,
+#		[N] is a numeric field in %e or %f format,
+# and
+# 	: is the delimter between fields, specified by the user.
+#
+# Example log file format:
+# 	54477323: SGD: 1: 4.545e3: 5.2343e1
+# 	54477352: SGD: 2: 3.945e3: 4.3143
+# 	54477422: SGD: 3: 3.645e3: 3.2399
+#
+# Generally programs print lots of additional information,
+# but their output is structured differently from numeric
+# trace data in each iteration; hence the -n <num_numeric_fields>
+# option allows the number of numeric fields to be specified.
+# This will also allow programs that don't explicitly print the 
+# iteration number to be parsed.
+#
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Fri 04 Sep 2015 04:10:31 PM EDT
+# Last Modified: Fri 04 Sep 2015 05:02:30 PM EDT
+# =================================================
+
+# set defaults
+delim=':'
+columns='1,4,5'
+
+# define reg expressions to grep for in log files 
+# floating point strings are: e.g., 45.334E-23, 0.53e2, etc
+__='[[:space:]]*'
+TIMESTAMP='[0-9]+'
+_FLOAT_='[0-9]+\.?[0-9]*([eE][-+]?[0-9]+)?'
+_INT_='[0-9]+'
+_delim_="$__$delim$__"
+
+FILE_NAME=$0
+SCRIPT_NAME=$(basename $FILE_NAME)
+show_help_and_exit() {
+	disp_opts -h -n 14 $FILE_NAME 2>/dev/null
+	exit
+}
+
+msg () {
+	echo "$SCRIPT_NAME: $@" 1>&2
+}
+warn () {
+	msg WARNING: $@
+}
+error () {
+	msg ERROR: $@
+}
+
+# filter numerical lines with the following format, with  delim=':'
+# timestamp : iter : val1 : val2 : ... 
+filter_lines() { fin="$1";
+	if [ -z "$num_numeric_cols" ]; then
+		num_numeric_cols=1
+	fi
+	# can search with the iteration, INT field in pattern, but it is subsumed by FLOAT
+	# prefix="^$TIMESTAMP$_delim_$pattern$_delim_$_INT_"
+
+	nreps=$(seq 1 $num_numeric_cols)
+	prefix="^$TIMESTAMP$_delim_$pattern"
+	regex="$prefix$(printf "%.0s$_delim_$_FLOAT_" $nreps)"
+
+	if ! grep -q -m 1 -E "$regex" "$fin"; then
+		error "Could not match $regex in $fin"
+		return
+	fi
+	grep -E "$regex" "$fin"
+}
+process_lbfgs_file() { fin="$1";
+	log_output=$(mktemp)
+	soln_output=$(mktemp)
+	if [ $? -gt 0 ]; then
+		error "Could not create tmpfile for lbfgs output."
+		return
+	fi
+	# filter lines normally
+	filter_lines "$fin" \
+		| cut -f "$columns" -d "$delim" \
+		> "$log_output"
+
+	# get the output from the bottom of the file with the actual iterations
+	regex="^$TIMESTAMP: RunSGD: soln: [0-9]+:"
+	fvals=$(grep -E "$regex" "$fin" \
+		| cut -d: -f5 \
+		)
+	msg "Read $fvals"
+
+	# this is the ugliest, most inefficient shit ever,
+	# but it's not my fault that no trace info is printed,
+	# so fuck you.
+	for f in $fvals; do
+		grep -m 1 "$f" "$log_output"
+	done
+}
+
+optstring="c:p:n:"
+while getopts "$optstring" opt; do
+	case "$opt" in
+		d)
+			delim="$OPTARG"
+			_delim_="$__$OPTARG$__"
+			;;
+		p)
+			pattern="$OPTARG"
+			;;
+		c)
+			columns="$OPTARG"
+			;;
+		n)
+			num_numeric_cols="$OPTARG"
+			;;
+		:)
+			error "-$opt requires argument" 
+			;; 
+		?)
+			error invalid option
+			;; 
+	esac
+done
+shift $((OPTIND - 1))
+
+if (($# == 0)); then
+	show_help_and_exit
+	exit 0
+fi
+
+if [ -z "$pattern" ]; then
+	error "-p <pattern> unspecified."
+	show_help_and_exit
+	exit 0
+fi
+
+for log in $@; do
+	# try to append spark_stdout if a directory is given
+	if [ -d "$log" ]; then
+		default=spark_stdout
+		f="$log/$default"
+		if [ ! -r "$f" ]; then
+			error "$log is a directory, but $f is not a valid file"
+			continue
+		fi
+		log="$f"
+	fi
+
+	if [ ! -r "$log" ]; then
+		error "'$log' is not a readable file"
+		continue
+	fi
+
+	# ugly little hack for LBFGS, which doesn't print
+	# iters, and currently mangles trace output with
+	# line search output.
+	if [[ "$pattern" == LBFGS ]]; then
+		process_lbfgs_file "$log"
+	else
+		filter_lines "$log" \
+			| cut -f "$columns" -d "$delim"
+	fi
+done

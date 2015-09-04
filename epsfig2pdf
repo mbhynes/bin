@@ -5,7 +5,7 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Tue 28 Jul 2015 10:41:26 PM EDT
-# Last Modified: Fri 21 Aug 2015 11:21:44 AM EDT
+# Last Modified: Wed 26 Aug 2015 11:06:43 PM EDT
 # =================================================
 . latex_header
 
@@ -71,6 +71,7 @@ if (($# == 0)); then
 fi
 
 for fin in $@; do
+	fdir=$(dirname $fin)
 	msg "Processing $fin"
 	extension=$(ext $fin)
 	base=$(basename $fin $extension)
@@ -96,7 +97,8 @@ for fin in $@; do
 	make_main "$fin" > "$fout"
 	compile "$fout"
 
-	msg "Writing $fout to $base.pdf"
+	msg "Writing $fout to $orig_dir$base.pdf"
 	mv $(basename $fout .tex).pdf $base.pdf
 	rm "$fout" $(basename $fout .tex).{out,log,aux}
+
 done

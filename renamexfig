@@ -1,0 +1,58 @@
+#!/bin/bash
+#
+# /home/mike/bin/renamexfig
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Sun 30 Aug 2015 11:08:54 AM EDT
+# Last Modified: Sun 30 Aug 2015 11:28:01 AM EDT
+# =================================================
+
+SCRIPT_NAME=$(basename $0)
+msg () {
+	echo "$SCRIPT_NAME: $@" 1>&2
+}
+warn () {
+	msg WARNING: $@
+}
+error () {
+	msg ERROR: $@
+}
+
+optstring=""
+while getopts "$optstring" opt; do
+	case "$opt" in
+		:)
+			error "-$opt requires argument" 
+			;; 
+		?)
+			error invalid option
+			;; 
+	esac
+done
+shift $((OPTIND - 1))
+
+for f in $@; do
+	dir=$(dirname "$f")
+	ext=$(ext "$f")
+	base=$(basename "$f" "$ext")
+
+	# actual tex files are named with .tex_t extension
+	if [[ "$ext" == ".tex_t" ]]; then
+		epsfile=$( grep -m1 -o includegraphcs "$f" \
+			| tr '{}' '::' \
+			| cut -d: -f2 \
+		)
+		if [ -f "$dir/$base.tex" ]; then
+			msg "Copying $dir/$base.tex to $dir/$base.eps"
+			cp "$dir/$base.tex" "$dir/$base.eps"
+		fi
+		msg "Changing \\includegraphics{$base.tex} in $f to \
+\\includegraphics{$base.eps} and writing to $dir/$base.tex"
+		sed -e "s/\\includegraphics{$base.tex}/\\includegraphics{$base.eps}/" "$f" \
+			> "$dir/$base.tex"
+	else
+		msg "Copying $f to $dir/$base.eps"
+		cp "$f" "$dir/$base.eps"
+	fi
+done
