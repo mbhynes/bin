@@ -76,7 +76,7 @@ filter_lines() { fin="$1";
 	regex="$prefix$(printf "%.0s$_delim_$_FLOAT_" $nreps)"
 
 	if ! grep -q -m 1 -E "$regex" "$fin"; then
-		error "Could not match $regex in $fin"
+		error "Could not match '$pattern'"
 		return
 	fi
 	grep -E "$regex" "$fin"

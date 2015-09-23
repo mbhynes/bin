@@ -1,0 +1,99 @@
+#!/bin/bash
+#
+# numeric_funs
+#
+# Some functions for printing numeric strings correctly
+# with the right number of sig figs.
+#
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Sat 05 Sep 2015 02:29:33 PM EDT
+# Last Modified: Sun 06 Sep 2015 09:15:23 PM EDT
+# =================================================
+
+msg () {
+	echo "$@" 1>&2
+}
+warn () {
+	msg WARNING: $@
+}
+error () {
+	msg ERROR: $@
+}
+
+is_zero() { num="$1"
+	# msg "$num"
+	full_num=$(printf "%16.16f" "$num")
+	# msg $full_num
+	grep -q -v '[^0.]' <<< "$full_num" 1>&2
+	return $?
+}
+# print a format string for significant figures with printf
+sig_fig_format() { num="$1"
+	full_num=$(printf "%16.16f" "$num")
+	decimals=$(cut -d. -f2 <<<"$full_num")
+	len=${#full_num}
+	num_decimals=${#decimals}
+	num_non_decimals=$((len - num_decimals - 1))
+	# msg "$full_num has $len digits: $num_decimals decimals and $num_non_decimals non-decimals"
+
+	if [[ "${full_num:0:1}" == '0' ]]; then
+		k=1
+	else
+		k=0
+	fi
+	digit=${full_num:$k:1}
+	# msg "$k: $digit"
+	while [[ "$digit" == '.' ]] || ((digit == 0)); do
+		((k++))
+		if ((k == len)); then
+			break
+		fi
+		digit=${full_num:$k:1}
+		# msg "$k: $digit"
+	done
+	first_sig_fig=$k
+	if ((first_sig_fig <= num_non_decimals)); then
+		format="%$first_sig_fig".0f
+	else
+		format="%$num_non_decimals"."$((first_sig_fig - num_non_decimals))"f
+	fi
+	echo "$format" 
+}
+
+add_commas() { num="$1";
+	len=${#num}
+	k=len
+	iter=0
+	while ((k >= 0)); do
+		echo -n ${num:$k:1}
+		if ((iter != 0 )) && ((iter != len)) && ((iter % 3 == 0)); then
+			echo -n ','
+		fi
+		((iter++))
+		((k--))
+	done | rev
+}
+
+# print a +/- da in latex format
+latex_sig_fig() { a="$1"; da="$2"
+	format=$(sig_fig_format "$da")
+	printf "\$$format \\pm $format\$" $a $da
+}
+
+
+test_sig_figs() {
+	for n in 400.23 1e-6 23.2345e-2 0.23; do
+		p=$(sig_fig_format $n)
+		msg "$n has format: $p" 
+		printf "$n -> $p\n" $n
+	done
+}
+
+test_add_commas() {
+	for n in $(seq 1 10 100); do
+		num=$((RANDOM * $n))
+		msg "$num -> $(add_commas $num)" 
+	done
+}
