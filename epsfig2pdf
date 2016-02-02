@@ -5,11 +5,12 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Tue 28 Jul 2015 10:41:26 PM EDT
-# Last Modified: Wed 26 Aug 2015 11:06:43 PM EDT
+# Last Modified: Fri 25 Sep 2015 06:25:42 PM EDT
 # =================================================
 . latex_header
 
 TEXFLAGS="-file-line-error -interaction nonstopmode -shell-escape"
+width=0.9
 
 make_main() { f=$1;
 	preamble
@@ -17,7 +18,7 @@ make_main() { f=$1;
 	if [ ! -r "$f" ]; then
 		error "$f is not a valid file!"
 	fi
-	epstexfigure $f "$caption"
+	epstexfigure $f "$width" "$caption"
 	end_document
 }
 
@@ -43,9 +44,12 @@ error () {
 	msg ERROR: $@
 }
 
-optstring="t:dv"
+optstring="w:t:dv"
 while getopts "$optstring" opt; do
 	case "$opt" in
+		w)
+			width="$OPTARG"
+			;;
 		v)
 			VERBOSE="TRUE"
 			;;

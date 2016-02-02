@@ -151,10 +151,13 @@ end_document() {
 EOF
 }
 
-epstexfigure() { file=$1; shift; caption=$(tr '_' ' ' <<<$@);
+epstexfigure() { file=$1; shift; width=$1; shift; caption=$(tr '_' ' ' <<<$@);
 	ftype=$(ext $file)
 	if [ -z "$ftype" ]; then
 		file=$file.tex
+	fi
+	if [ -z "$width" ]; then
+		width=0.9
 	fi
 
 	if [ ! -r "$file" ]; then
@@ -164,7 +167,7 @@ epstexfigure() { file=$1; shift; caption=$(tr '_' ' ' <<<$@);
 	# remove either the .tex or the .eps extension
 	fname=${file%%.tex}
 	fname=${fname%%.eps}
-	echo "\\EPSFIG{$fname}{0.95}{$caption}"
+	echo "\\EPSFIG{$fname}{$width}{$caption}"
 	if [ "$HAS_PLACEINS" ]; then
 		echo "\\FloatBarrier"
 	fi

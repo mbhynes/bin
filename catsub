@@ -12,11 +12,11 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Sun Jan 25 16:21:55 2015
-# Last Modified: Fri Feb  6 13:16:24 2015
+# Last Modified: Mon 14 Dec 2015 03:33:18 PM EST
 # =================================================
 
-line1=""
-line2=""
+line1="1"
+line2="9999999"
 
 SCRIPT_NAME=$(basename $0)
 msg () {
@@ -70,11 +70,11 @@ for file in "$@"; do
 		continue
 	fi
 
-	len=$(wc -l <$file)
-	if ((line2 > len)); then
-		warn "line2 > file_len: $line2 > $len; using line2=$len"
-		line2=$len
-	fi
+	# len=$(wc -l <$file)
+	# if ((line2 > len)); then
+	# 	warn "line2 > file_len: $line2 > $len; using line2=$len"
+	# 	line2=$len
+	# fi
 
 	if ((line1 > line2)); then
 		warn "line1 > line2: $line1 > $line2: swapping values"

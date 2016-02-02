@@ -111,7 +111,7 @@ process_lbfgs_file() { fin="$1";
 	rm "$log_output"
 }
 
-optstring="fc:p:n:"
+optstring="d:fc:p:n:"
 while getopts "$optstring" opt; do
 	case "$opt" in
 		f) 
