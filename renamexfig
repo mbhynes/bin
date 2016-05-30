@@ -1,11 +1,15 @@
 #!/bin/bash
 #
-# /home/mike/bin/renamexfig
+# renamexfig
+# 
+# Rename the default xfig export of eps/latex files to be:
+#		file.tex
+#		file.eps
 # =================================================
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Sun 30 Aug 2015 11:08:54 AM EDT
-# Last Modified: Sun 30 Aug 2015 11:28:01 AM EDT
+# Last Modified: Mon 08 Feb 2016 08:14:46 PM EST
 # =================================================
 
 SCRIPT_NAME=$(basename $0)
@@ -19,9 +23,21 @@ error () {
 	msg ERROR: $@
 }
 
-optstring=""
+include_file() {
+	grep -m1 includegraphics "$1" \
+		| tr '{}' '::' \
+		| cut -d: -f2
+}
+
+optstring="d:p"
 while getopts "$optstring" opt; do
 	case "$opt" in
+		p)
+			make_pdf="true"
+			;;
+		d)
+			output_dir="$OPTARG"
+			;;
 		:)
 			error "-$opt requires argument" 
 			;; 
@@ -33,26 +49,55 @@ done
 shift $((OPTIND - 1))
 
 for f in $@; do
-	dir=$(dirname "$f")
-	ext=$(ext "$f")
-	base=$(basename "$f" "$ext")
+	[ ! -f "$f" ] && continue;
+
+	if [ -z "$output_dir" ]; then
+		dir=$(dirname "$f")
+	else
+		dir="$output_dir"
+	fi
+	ftype=$(ext "$f")
+	base=$(basename "$f" "$ftype")
+
+	if grep -q includegraphics "$f"; then
+		# f is the tex file
+		epsfile=$(include_file "$f")
+		if [[ "$ftype" != '.tex' ]]; then
+			fout="$dir/$base.tex"
+			msg "$f is not .tex; copying to $fout"
+			sed -e "s/$epsfile/$base.eps/" "$f" > "$fout"
+		fi
+		fout="$dir/$base.eps"
+		[ ! -f "$epsfile" ] && continue;
+		msg "Copying $epsfile to $fout"
+		cp "$epsfile" "$fout"
+
+		if [ -n "$make_pdf" ]; then
+			epsfig2pdf "$fout"
+		fi
+
+	else
+		# run on the accompanying "$f"_t file
+		# fout="$dir/$base.eps"
+		# msg "Copying $f to $fout"
+		# mv "$f" "$dir/$base.eps"
+		"$0" "$f"_t
+	fi
 
 	# actual tex files are named with .tex_t extension
-	if [[ "$ext" == ".tex_t" ]]; then
-		epsfile=$( grep -m1 -o includegraphcs "$f" \
-			| tr '{}' '::' \
-			| cut -d: -f2 \
-		)
-		if [ -f "$dir/$base.tex" ]; then
-			msg "Copying $dir/$base.tex to $dir/$base.eps"
-			cp "$dir/$base.tex" "$dir/$base.eps"
-		fi
-		msg "Changing \\includegraphics{$base.tex} in $f to \
-\\includegraphics{$base.eps} and writing to $dir/$base.tex"
-		sed -e "s/\\includegraphics{$base.tex}/\\includegraphics{$base.eps}/" "$f" \
-			> "$dir/$base.tex"
-	else
-		msg "Copying $f to $dir/$base.eps"
-		cp "$f" "$dir/$base.eps"
-	fi
+# 	if [[ "$ext" =~ _t ]]; then
+# 		msg "Found $epsfile"
+# 		if [ -f "$dir/$base.tex" ]; then
+# 			msg "Copying $dir/$base.tex to $dir/$base.eps"
+# 			mv "$dir/$base.tex" "$dir/$base.eps"
+# 		fi
+# 		msg "Changing \\includegraphics{$base.tex} in $f to \
+# \\includegraphics{$base.eps} and writing to $dir/$base.tex"
+# 		sed -e "s/\\includegraphics{$base.tex}/\\includegraphics{$base.eps}/" "$f" \
+# 			> "$dir/$base.tex"
+# 	else
+# 		$0 "$f"_t
+# 		msg "Copying $f to $dir/$base.eps"
+# 		mv "$f" "$dir/$base.eps"
+# 	fi
 done

@@ -151,7 +151,7 @@ end_document() {
 EOF
 }
 
-epstexfigure() { file=$1; shift; width=$1; shift; caption=$(tr '_' ' ' <<<$@);
+epstexfigure() { file=$1; shift; width=$1; shift; caption=$@;#caption=$(tr '_' ' ' <<<$@);
 	ftype=$(ext $file)
 	if [ -z "$ftype" ]; then
 		file=$file.tex

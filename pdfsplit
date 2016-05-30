@@ -1,0 +1,61 @@
+#!/bin/bash
+#
+# /home/mike/bin/pdfsplit
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Mon 30 May 2016 02:54:57 AM EDT
+# Last Modified: Mon 30 May 2016 03:08:44 AM EDT
+# ==================================================""
+
+SCRIPT_NAME=$(basename $0)
+msg () {
+	echo "$SCRIPT_NAME: $@" 1>&2
+}
+warn () {
+	msg WARNING: $@
+}
+error () {
+	msg ERROR: $@
+}
+
+first=1
+last=1
+optstring="1:2:f:"
+while getopts "$optstring" opt; do
+	case "$opt" in
+		f)
+			fout="$OPTARG"
+			;;
+		1) 
+			first=$OPTARG
+			;;
+		2)
+			last=$OPTARG
+			;;
+		:)
+			error "-$opt requires argument" 
+			;; 
+		?)
+			error invalid option
+			;; 
+	esac
+done
+shift $((OPTIND - 1))
+
+for f in $@; do
+	if [ ! -r "$f" ]; then
+		error "$f is not a readable file"
+		continue
+	fi
+	if [ -z "$fout" ]; then
+		file=$(basename "$f" .pdf)
+		fout=${file%.pdf}
+	fi
+	prefix=$(mktemp)
+	pdfseparate -f "$first" -l "$last" "$f" "$prefix-%d.pdf" 
+	files=$(printf "$prefix-%d.pdf " $(seq $first $last))
+	pdfcat -o "$fout.pdf" $files
+	rm $prefix
+	rm $files
+done

@@ -5,7 +5,7 @@
 # Author: Michael B Hynes, mbhynes@uwaterloo.ca
 # License: GPL 3
 # Creation Date: Tue 28 Jul 2015 10:41:26 PM EDT
-# Last Modified: Fri 25 Sep 2015 06:25:42 PM EDT
+# Last Modified: Thu 14 Apr 2016 12:43:00 AM EDT
 # =================================================
 . latex_header
 
@@ -69,12 +69,20 @@ while getopts "$optstring" opt; do
 done
 shift $((OPTIND - 1))
 
+if [ -z "$caption" ]; then
+	fname_caption="true"
+fi
+
 if (($# == 0)); then
 	disp_opts -n 10 -h $0 2>/dev/null
 	exit 0
 fi
 
 for fin in $@; do
+	if [ -n "$fname_caption" ]; then
+		caption="$fin"
+	fi
+
 	fdir=$(dirname $fin)
 	msg "Processing $fin"
 	extension=$(ext $fin)

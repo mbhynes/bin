@@ -1,0 +1,132 @@
+#!/bin/bash
+#
+# abbrev_bib
+#
+# Abbreviate a bibtex journal
+# =================================================
+# Author: Michael B Hynes, mbhynes@uwaterloo.ca
+# License: GPL 3
+# Creation Date: Mon 19 Oct 2015 10:28:22 AM EDT
+# Last Modified: Mon 19 Oct 2015 11:56:21 AM EDT
+# =================================================
+
+BIBDIR=$HOME/bib
+ABBREV_FILE=$BIBDIR/abbrev
+SCRIPT_NAME=$(basename $0)
+
+msg () {
+	echo "$SCRIPT_NAME: $@" 1>&2
+}
+warn () {
+	msg WARNING: $@
+}
+error () {
+	msg ERROR: $@
+}
+
+get_line(){ fin="$1"; pattern="$2"
+	grep -E -i -m 1 "$pattern[[:space:]]*=" "$fin" | tr '{}' '""' 
+}
+
+get_journal() { fin="$1";
+	if is_proceedings "$fin"; then
+		orig_line=$(get_line "$fin" booktitle)
+		line=$(get_line "$fin" booktitle \
+			| sed -r -e 's/.*"(.*)".*/\1/' \
+			| tr 'a-z' 'A-Z' \
+			| sed -r -e 's/PROCEEDINGS OF THE //;' \
+			| sed -e 's/ (.*)//g'
+			)
+		newline=${line#*CONFERENCE ON }
+		newline=${newline#*SYMPOSIUM ON }
+		newline=${newline#*WORKSHOP ON }
+		if grep -q -i 'proceedings of' <<< "$orig_line"; then
+			echo "$newline, PROCEEDINGS"
+		else
+			echo "$newline"
+		fi
+	elif is_article "$fin"; then
+		get_line "$fin" journal \
+			| sed -r -e 's/.*"(.*)".*/\1/' \
+			| tr 'a-z' 'A-Z' \
+			| sed -r -e 's/THE JOURNAL OF/JOURNAL OF/; s/^THE //' \
+			| sed -e 's/ (.*)//g'
+	fi 
+}
+
+get_abbrev() { title="$1";
+	if ! grep -q -m 1 -E "^$title$" "$ABBREV_FILE"; then
+		return 1
+	fi
+	grep -m 1 -E -A 1 "^$title$" "$ABBREV_FILE" | tail -n 1
+}
+
+abbreviate_journal() { fin="$1"; abbrev="$2";
+	if is_article "$fin"; then
+		sed -r -e "s/.*[jJ][oO][uU][rR][nN][aA][lL][[:space:]]*=[\"{].*[\"}],?/journal=\"$abbrev\",/" $fin
+	else
+		sed -r -e "s/.*[bB][oO][oO][kK][tT][iI][tT][lL][eE][[:space:]]*=[\"{].*[\"}],?/booktitle=\"$abbrev\",/" $fin
+	fi
+}
+
+to_camel_case() {
+	for str in $@; do
+		if [[ "$str" == SIAM ]] || [[ "$str" == ACM ]] || [[ "$str" == IEEE ]]; then
+			echo -n "$str "
+		else
+			first=${str:0:1}
+			suffix=${str:1:100}
+			echo -n "$(tr 'a-z' 'A-Z' <<< "$first")$(tr 'A-Z' 'a-z' <<< "$suffix") "
+		fi
+	done
+	printf '\n'
+}
+
+is_proceedings() { fin="$1";
+	if grep -q -m 1 '@inproceedings' "$fin"; then
+		return 0
+	else
+		return 1
+	fi
+}
+is_article(){ fin="$1";
+	if grep -q -m 1 '@article' "$fin" ; then
+		return 0
+	else
+		return 1
+	fi
+}
+
+optstring=""
+while getopts "$optstring" opt; do
+	case "$opt" in
+		:)
+			error "-$opt requires argument" 
+			;; 
+		?)
+			error invalid option
+			;; 
+	esac
+done
+shift $((OPTIND - 1))
+
+for f in $@; do
+	# if ! is_article "$f"; then
+	# 	msg "$f" is not article or proc
+	# 	continue
+	# fi
+	journal=$(get_journal "$f")
+	if [ ! -z "$journal" ]; then
+		abbrev=$(to_camel_case $(get_abbrev "$journal") )
+		if [ ! -z "$abbrev" ]; then
+			msg "$f:$journal:$abbrev"
+			abbreviate_journal "$f" "$abbrev" 
+		else
+			error "$f:\"$journal\" not found"
+			cat "$f"
+		fi
+	else
+		msg "$f:n/a"
+		cat "$f"
+	fi
+done
